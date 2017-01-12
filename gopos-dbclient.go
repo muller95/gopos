@@ -1,0 +1,212 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"github.com/gotk3/gotk3/glib"
+	"github.com/gotk3/gotk3/gtk"
+	"net"
+	"os"
+	"time"
+)
+
+var workersListStore *gtk.ListStore
+var mainWindow *gtk.Window
+var goposServerIp, goposServerPassword, goposServerPort string
+
+const (
+	COLUMN_ID = iota
+	COLUMN_NAME
+	COLUMN_DATE
+)
+
+func createColumn(title string, id int) *gtk.TreeViewColumn {
+	cellRenderer, err := gtk.CellRendererTextNew()
+	if err != nil {
+		log.Fatal("Unable to create text cell renderer: ", err)
+	}
+
+	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "text", id)
+	if err != nil {
+		log.Fatal("Unable to create cell column")
+	}
+
+	return column
+}
+
+func createTreeView() (*gtk.TreeView, *gtk.ListStore) {
+	treeView, err := gtk.TreeViewNew()
+
+	if err != nil {
+		log.Fatal("Unable to create tree view: ", err)
+	}
+
+	treeView.AppendColumn(createColumn("ID", COLUMN_ID))
+	treeView.AppendColumn(createColumn("Имя", COLUMN_NAME))
+	treeView.AppendColumn(createColumn("Дата", COLUMN_DATE))
+
+	listStore, err := gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING, glib.TYPE_STRING)
+	if err != nil {
+		log.Fatal("Unable to create list store: ", err)
+	}
+
+	treeView.SetModel(listStore)
+
+	return treeView, listStore
+}
+
+func addRow(listStore *gtk.ListStore, id int, name string, date string) {
+	iter := listStore.Append()
+
+	err := listStore.Set(iter, []int{ COLUMN_ID, COLUMN_NAME, COLUMN_DATE },
+		[]interface{} { id, name, date })
+
+	if err != nil {
+		log.Fatal("Unable to add row: ", err)
+	}
+}
+
+func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
+	workerName, err := workerNameEntry.GetText()
+
+	if err == nil {
+		if len(workerName) > 0 {
+			currTime := time.Now().Local()
+			timeString := fmt.Sprintf("%d-%d-%d", currTime.Day(), currTime.Month(),
+				currTime.Year())
+
+
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+				goposServerPort))
+
+			if err != nil {
+				log.Fatal("Unable to connect to server")
+			}
+
+			requestMap := make(map[string]string)
+			requestMap["group"] = "WORKER"
+			requestMap["action"] = "ADD"
+			requestMap["password"] = goposServerPassword
+			requestMap["name"] = workerName
+			requestMap["date"] = timeString
+
+			if err != nil {
+				log.Fatal("Error marshal json: ", err)
+			}
+			encoder := json.NewEncoder(conn)
+			err = encoder.Encode(requestMap)
+			if err != nil {
+				log.Fatal("Error on encode request map: ", requestMap)
+			}
+			addRow(workersListStore, 1, workerName, timeString)
+		} else {
+			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
+				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите имя работника")
+			messageDialog.Run()
+			messageDialog.Destroy()
+		}
+	} else {
+		log.Fatal("Unable to get worker name entry text: ", err)
+	}
+}
+
+func main() {
+	var workersTreeView *gtk.TreeView
+	var err error
+
+	goposServerIp = os.Getenv("GOPOS_SERVER_IP")
+	if goposServerIp == "" {
+		log.Fatal("GOPOS_SERVER_IP is not set")
+	}
+	fmt.Println(goposServerIp)
+
+	goposServerPassword = os.Getenv("GOPOS_SERVER_PASSWORD")
+	if goposServerPassword == "" {
+		log.Fatal("GOPOS_SERVER_PASSWORD is not set")
+	}
+	fmt.Println(goposServerPassword)
+
+	goposServerPort = os.Getenv("GOPOS_SERVER_PORT")
+	if goposServerPort == "" {
+		log.Fatal("GOPOS_SERVER_PORT is not set")
+	}
+	fmt.Println(goposServerPort)
+
+	// Initialize GTK without parsing any command line arguments.
+	gtk.Init(nil)
+
+
+	// Create a new toplevel window, set its title, and connect it to the
+	// "destroy" signal to exit the GTK main loop when it is destroyed.
+	mainWindow, err = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
+	if err != nil {
+		log.Fatal("Unable to create window:", err)
+	}
+
+	mainWindow.SetTitle("gopos-dbclient")
+	mainWindow.Connect("destroy", func() {
+		gtk.MainQuit()
+	})
+
+
+	workersVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
+	if err != nil {
+		log.Fatal("Unable to create main vertical box: ", err)
+	}
+
+
+	workersTreeView, workersListStore = createTreeView()
+
+	workersFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
+	if err != nil {
+		log.Fatal("Unable to create workers form horizontal box: ", err)
+	}
+
+	workerNameLabel, err := gtk.LabelNew("Имя работника:")
+	if err != nil {
+		log.Fatal("Unable to create label:", err)
+	}
+
+	workerNameEntry, err := gtk.EntryNew()
+	if err != nil {
+		log.Fatal("Unable to create entry: ", err)
+	}
+
+	workerAddButton, err := gtk.ButtonNewWithLabel("Добавить")
+	if err != nil {
+		log.Fatal("Unable to create add button: ", err)
+	}
+//	a := 2
+/*	workerAddButton.Connect("clicked", func (btn *gtk.Button) {
+		fmt.Println("here")
+	})*/
+	workerAddButton.Connect("clicked", workerAddButtonClicked, workerNameEntry)
+
+	workerDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
+	if err != nil {
+		log.Fatal("Unable to create add button: ", err)
+	}
+
+	workersFormHbox.PackStart(workerNameLabel, false, false, 3)
+	workersFormHbox.PackStart(workerNameEntry, true, true, 3)
+	workersFormHbox.PackStart(workerAddButton, true, true, 3)
+	workersFormHbox.PackStart(workerDeleteSelectedButton, true, true, 3)
+
+
+	workersVbox.PackStart(workersTreeView, true, true, 3)
+	workersVbox.PackStart(workersFormHbox, false, false, 3)
+	mainWindow.Add(workersVbox)
+
+
+	// Set the default window size.
+	mainWindow.SetDefaultSize(800, 600)
+
+	// Recursively show all widgets contained in this window.
+	mainWindow.ShowAll()
+
+	// Begin executing the GTK main loop.  This blocks until
+	// gtk.MainQuit() is run.
+	gtk.Main()
+}
+
