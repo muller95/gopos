@@ -8,10 +8,74 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
 var dbConn *sql.DB
+
+func handleWorkerGet() {
+	rows, err := dbConn.Query("SELECT * from workers ORDER BY id ASC")
+	if err != nil {
+		log.Fatal("Error on getting workers ids: ", err)
+	}
+	for rows.Next() {
+//		var currId int
+		var id int
+		var name string
+		var date time.Time
+
+		err := rows.Scan(&id, &name, &date)
+		if err != nil {
+			log.Fatal("Error on handling sql response")
+		}
+		fmt.Printf("%d %s %v\n", id, name, date)
+	}
+}
+
+func handleWorkerAdd(requestMap map[string]string, conn net.Conn) {
+	id := 0
+	rows, err := dbConn.Query("SELECT id from workers ORDER BY id ASC")
+	responseMap := make(map[string]string)
+	if err != nil {
+		log.Fatal("Error on getting workers ids: ", err)
+	}
+
+	for ;rows.Next(); id++ {
+		var currId int
+		err := rows.Scan(&currId)
+		if err != nil {
+			log.Fatal("Error on handling sql response")
+		}
+
+		if id != currId {
+			break
+		}
+	}
+
+	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO workers VALUES(%d, '%s', '%s')", id,
+		requestMap["name"], requestMap["date"]))
+	if err != nil {
+		log.Fatal("Error on inserting new worker: ", err)
+	}
+
+	responseMap["id"] = fmt.Sprintf("%d", id)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+}
+
+func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
+	switch requestMap["group"]{
+		case "WORKER":
+		switch requestMap["action"] {
+			case "ADD":
+			handleWorkerAdd(requestMap, conn)
+		}
+	}
+}
 
 func handleConnection(conn net.Conn) {
 	requestMap := make(map[string]string)
@@ -21,7 +85,21 @@ func handleConnection(conn net.Conn) {
 		log.Fatal("Error on decoding json: ", err)
 	}
 
-	fmt.Println(requestMap)
+
+	if requestMap["password"] != goposServerPassword {
+		responseMap := make(map[string]string)
+		responseMap["id"] = "-1"
+		responseMap["error"] = "Неправильный пароль"
+		encoder := json.NewEncoder(conn)
+		err := encoder.Encode(responseMap)
+		if err != nil {
+			log.Fatal("Error on encoding response json: ", err)
+		}
+
+		return
+	}
+
+	handleRequestGroup(requestMap, conn)
 }
 
 func main() {
@@ -51,11 +129,13 @@ func main() {
 	}
 	fmt.Println(goposSQLPassword)
 
-	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos", goposSQLUser, goposSQLPassword))
+	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos?parseTime=true", goposSQLUser, goposSQLPassword))
 
 	if err != nil {
 		log.Fatal("Error on opening database", err)
 	}
+
+	handleWorkerGet()
 
 	listener, err :=  net.Listen("tcp", ":" + goposServerPort)
 	if err != nil {

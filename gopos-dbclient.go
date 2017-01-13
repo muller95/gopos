@@ -8,6 +8,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"net"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -73,8 +74,8 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 	if err == nil {
 		if len(workerName) > 0 {
 			currTime := time.Now().Local()
-			timeString := fmt.Sprintf("%d-%d-%d", currTime.Day(), currTime.Month(),
-				currTime.Year())
+			timeString := fmt.Sprintf("%d-%d-%d", currTime.Year(), currTime.Month(),
+				currTime.Day())
 
 
 			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
@@ -99,7 +100,26 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 			if err != nil {
 				log.Fatal("Error on encode request map: ", requestMap)
 			}
-			addRow(workersListStore, 1, workerName, timeString)
+			decoder := json.NewDecoder(conn)
+			responseMap := make(map[string]string)
+			err = decoder.Decode(&responseMap)
+			if err != nil {
+				log.Fatal("Error on decoding response: ", err)
+			}
+
+			id, err := strconv.Atoi(responseMap["id"])
+			if err != nil {
+				log.Fatal("Error on converting id to int: ", err)
+			}
+			if id < 0 {
+				messageDialog := gtk.MessageDialogNew(mainWindow,
+					gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+					responseMap["error"])
+				messageDialog.Run()
+				messageDialog.Destroy()
+				return
+			}
+			addRow(workersListStore, id, workerName, timeString)
 		} else {
 			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
 				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите имя работника")
