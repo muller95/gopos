@@ -14,23 +14,36 @@ import (
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
 var dbConn *sql.DB
 
-func handleWorkerGet() {
+func handleWorkerGet(conn net.Conn) {
 	rows, err := dbConn.Query("SELECT * from workers ORDER BY id ASC")
 	if err != nil {
 		log.Fatal("Error on getting workers ids: ", err)
 	}
+
+	encoder := json.NewEncoder(conn)
 	for rows.Next() {
-//		var currId int
 		var id int
 		var name string
 		var date time.Time
 
-		err := rows.Scan(&id, &name, &date)
+		err = rows.Scan(&id, &name, &date)
 		if err != nil {
 			log.Fatal("Error on handling sql response")
 		}
-		fmt.Printf("%d %s %v\n", id, name, date)
+
+		responseMap := make(map[string]string)
+		responseMap["id"] = fmt.Sprintf("%d", id)
+		responseMap["name"] = fmt.Sprintf("%s", name)
+		responseMap["date"] = fmt.Sprintf("%d-%d-%d", date.Year(), date.Month(),
+			date.Day())
+		err = encoder.Encode(responseMap)
+		if err != nil {
+			log.Fatal("Error on encode request map: ", err)
+		}
+//		conn.Close()
 	}
+
+	conn.Close()
 }
 
 func handleWorkerAdd(requestMap map[string]string, conn net.Conn) {
@@ -63,8 +76,27 @@ func handleWorkerAdd(requestMap map[string]string, conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(responseMap)
 	if err != nil {
-		log.Fatal("Error on encode request map: ", requestMap)
+		log.Fatal("Error on encode request map: ", err)
 	}
+
+	conn.Close()
+}
+
+func handleWorkerDelete(requestMap map[string]string, conn net.Conn) {
+	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM workers where id=%s;", requestMap["id"]))
+	if err != nil {
+		log.Fatal("Error on deleting worker: ", err)
+	}
+
+	responseMap := make(map[string]string)
+	responseMap["result"] = fmt.Sprintf("OK")
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", err)
+	}
+
+	conn.Close()
 }
 
 func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
@@ -72,7 +104,11 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 		case "WORKER":
 		switch requestMap["action"] {
 			case "ADD":
-			handleWorkerAdd(requestMap, conn)
+				handleWorkerAdd(requestMap, conn)
+			case "GET":
+				handleWorkerGet(conn)
+			case "DELETE":
+				handleWorkerDelete(requestMap, conn)
 		}
 	}
 }
@@ -129,13 +165,14 @@ func main() {
 	}
 	fmt.Println(goposSQLPassword)
 
-	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos?parseTime=true", goposSQLUser, goposSQLPassword))
+	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos?parseTime=true", goposSQLUser,
+		goposSQLPassword))
 
 	if err != nil {
 		log.Fatal("Error on opening database", err)
 	}
 
-	handleWorkerGet()
+//	handleWorkerGet()
 
 	listener, err :=  net.Listen("tcp", ":" + goposServerPort)
 	if err != nil {

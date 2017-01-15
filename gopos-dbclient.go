@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -12,6 +13,7 @@ import (
 	"time"
 )
 
+var workersTreeView *gtk.TreeView
 var workersListStore *gtk.ListStore
 var mainWindow *gtk.Window
 var goposServerIp, goposServerPassword, goposServerPort string
@@ -57,7 +59,7 @@ func createTreeView() (*gtk.TreeView, *gtk.ListStore) {
 	return treeView, listStore
 }
 
-func addRow(listStore *gtk.ListStore, id int, name string, date string) {
+func workerAddRow(listStore *gtk.ListStore, id int, name string, date string) {
 	iter := listStore.Append()
 
 	err := listStore.Set(iter, []int{ COLUMN_ID, COLUMN_NAME, COLUMN_DATE },
@@ -91,15 +93,12 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 			requestMap["password"] = goposServerPassword
 			requestMap["name"] = workerName
 			requestMap["date"] = timeString
-
-			if err != nil {
-				log.Fatal("Error marshal json: ", err)
-			}
 			encoder := json.NewEncoder(conn)
 			err = encoder.Encode(requestMap)
 			if err != nil {
 				log.Fatal("Error on encode request map: ", requestMap)
 			}
+
 			decoder := json.NewDecoder(conn)
 			responseMap := make(map[string]string)
 			err = decoder.Decode(&responseMap)
@@ -119,7 +118,7 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 				messageDialog.Destroy()
 				return
 			}
-			addRow(workersListStore, id, workerName, timeString)
+			workerAddRow(workersListStore, id, workerName, timeString)
 		} else {
 			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
 				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите имя работника")
@@ -131,8 +130,90 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 	}
 }
 
+func getWorkers() {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "WORKER"
+	requestMap["action"] = "GET"
+	requestMap["password"] = goposServerPassword
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	for {
+		responseMap := make(map[string]string)
+		err = decoder.Decode(&responseMap)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("Error on decoding response: ", err)
+		}
+		id, err := strconv.Atoi(responseMap["id"])
+		if err != nil {
+			log.Fatal("Error on converting id to int: ", err)
+		}
+		workerAddRow(workersListStore, id, responseMap["name"], responseMap["date"])
+	}
+}
+
+func workerDeleteSelectedButtonClicked() {
+	selection, err := workersTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting workers selection")
+	}
+
+	rows := selection.GetSelectedRows(workersListStore)
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := workersListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+	value, err := workersListStore.GetValue(iter, 0)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	id := value.GetInt()
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "WORKER"
+	requestMap["action"] = "DELETE"
+	requestMap["password"] = goposServerPassword
+	requestMap["id"] = fmt.Sprintf("%d", id)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+	if responseMap["result"] == "OK" {
+		workersListStore.Remove(iter)
+	}
+}
+
 func main() {
-	var workersTreeView *gtk.TreeView
 	var err error
 
 	goposServerIp = os.Getenv("GOPOS_SERVER_IP")
@@ -197,16 +278,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-//	a := 2
-/*	workerAddButton.Connect("clicked", func (btn *gtk.Button) {
-		fmt.Println("here")
-	})*/
 	workerAddButton.Connect("clicked", workerAddButtonClicked, workerNameEntry)
 
 	workerDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
+	workerDeleteSelectedButton.Connect("clicked", workerDeleteSelectedButtonClicked, nil)
 
 	workersFormHbox.PackStart(workerNameLabel, false, false, 3)
 	workersFormHbox.PackStart(workerNameEntry, true, true, 3)
@@ -218,6 +296,7 @@ func main() {
 	workersVbox.PackStart(workersFormHbox, false, false, 3)
 	mainWindow.Add(workersVbox)
 
+	getWorkers()
 
 	// Set the default window size.
 	mainWindow.SetDefaultSize(800, 600)
