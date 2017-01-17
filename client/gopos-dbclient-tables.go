@@ -3,15 +3,14 @@
 package main
 
 import (
-//	"encoding/json"
-//	"fmt"
+	"encoding/json"
+	"fmt"
 //	"io"
 	"log"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-//	"net"
+	"net"
 	"strconv"
-//	"time"
 )
 
 var tablesTreeView *gtk.TreeView
@@ -56,18 +55,15 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 
 	if err == nil {
 		if len(tableNumber) > 0 {
-			_, err := strconv.ParseUint(tableNumber, 10, 32)
-			if err != nil {
+			number, err := strconv.Atoi(tableNumber)
+			if err != nil || number < 0{
 				messageDialog := gtk.MessageDialogNew(mainWindow,
 					gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
 					"Номер столика должен быть целым неотрицательным числом")
 				messageDialog.Run()
 				messageDialog.Destroy()
+				return
 			}
-		/*	currTime := time.Now().Local()
-			timeString := fmt.Sprintf("%d-%d-%d", currTime.Year(), currTime.Month(),
-				currTime.Day())
-
 
 			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
 				goposServerPort))
@@ -77,11 +73,10 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 			}
 
 			requestMap := make(map[string]string)
-			requestMap["group"] = "WORKER"
+			requestMap["group"] = "TABLES"
 			requestMap["action"] = "ADD"
 			requestMap["password"] = goposServerPassword
-			requestMap["name"] = workerName
-			requestMap["date"] = timeString
+			requestMap["number"] = tableNumber
 			encoder := json.NewEncoder(conn)
 			err = encoder.Encode(requestMap)
 			if err != nil {
@@ -95,11 +90,7 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 				log.Fatal("Error on decoding response: ", err)
 			}
 
-			id, err := strconv.Atoi(responseMap["id"])
-			if err != nil {
-				log.Fatal("Error on converting id to int: ", err)
-			}
-			if id < 0 {
+			if responseMap["result"] != "OK" {
 				messageDialog := gtk.MessageDialogNew(mainWindow,
 					gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
 					responseMap["error"])
@@ -107,7 +98,8 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 				messageDialog.Destroy()
 				return
 			}
-			workerAddRow(id, workerName, timeString)*/
+
+			tableAddRow(number)
 		} else {
 			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
 				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите номер столика")

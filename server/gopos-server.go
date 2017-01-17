@@ -40,7 +40,6 @@ func handleWorkerGet(conn net.Conn) {
 		if err != nil {
 			log.Fatal("Error on encode request map: ", err)
 		}
-//		conn.Close()
 	}
 
 	conn.Close()
@@ -99,17 +98,59 @@ func handleWorkerDelete(requestMap map[string]string, conn net.Conn) {
 	conn.Close()
 }
 
+func handleTableAdd(requestMap map[string]string, conn net.Conn) {
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT * from tables where number=%s",
+		requestMap["number"]))
+	responseMap := make(map[string]string)
+	if err != nil {
+		log.Fatal("Error on getting tables: ", err)
+	}
+
+	if rows.Next() {
+		responseMap := make(map[string]string)
+		responseMap["result"] = "ERR"
+		responseMap["error"] = "Столик с таким номером уже есть"
+		encoder := json.NewEncoder(conn)
+		err := encoder.Encode(responseMap)
+		if err != nil {
+			log.Fatal("Error on encoding response json: ", err)
+		}
+
+		return
+	}
+
+
+	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO tables VALUES(%s)", requestMap["number"]))
+	if err != nil {
+		log.Fatal("Error on inserting new table: ", err)
+	}
+
+	responseMap["result"] = "OK"
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", err)
+	}
+
+	conn.Close()
+}
+
 func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 	switch requestMap["group"]{
 		case "WORKER":
-		switch requestMap["action"] {
-			case "ADD":
-				handleWorkerAdd(requestMap, conn)
-			case "GET":
-				handleWorkerGet(conn)
-			case "DELETE":
-				handleWorkerDelete(requestMap, conn)
-		}
+			switch requestMap["action"] {
+				case "ADD":
+					handleWorkerAdd(requestMap, conn)
+				case "GET":
+					handleWorkerGet(conn)
+				case "DELETE":
+					handleWorkerDelete(requestMap, conn)
+			}
+		case "TABLES":
+			switch requestMap["action"] {
+				case "ADD":
+					handleTableAdd(requestMap, conn)
+			}
 	}
 }
 
@@ -171,8 +212,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Error on opening database", err)
 	}
-
-//	handleWorkerGet()
 
 	listener, err :=  net.Listen("tcp", ":" + goposServerPort)
 	if err != nil {
