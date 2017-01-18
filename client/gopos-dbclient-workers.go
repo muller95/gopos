@@ -96,7 +96,7 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 			if err != nil {
 				log.Fatal("Error on converting id to int: ", err)
 			}
-			if id < 0 {
+			if responseMap["result"] == "ERR" {
 				messageDialog := gtk.MessageDialogNew(mainWindow,
 					gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
 					responseMap["error"])
@@ -144,10 +144,8 @@ func getWorkers() {
 		if err != nil {
 			log.Fatal("Error on decoding response: ", err)
 		}
-		id, err := strconv.Atoi(responseMap["id"])
-		if err != nil {
-			log.Fatal("Error on converting id to int: ", err)
-		}
+
+		id, _ := strconv.Atoi(responseMap["id"])
 		workerAddRow(id, responseMap["name"], responseMap["date"])
 	}
 }
@@ -157,8 +155,10 @@ func workerDeleteSelectedButtonClicked() {
 	if err != nil {
 		log.Fatal("Error on getting workers selection")
 	}
-
 	rows := selection.GetSelectedRows(workersListStore)
+	if rows == nil {
+		return
+	}
 	path := rows.Data().(*gtk.TreePath)
 	iter, err := workersListStore.GetIter(path)
 	if err != nil {

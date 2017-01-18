@@ -5,7 +5,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-//	"io"
+	"io"
 	"log"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -73,7 +73,7 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 			}
 
 			requestMap := make(map[string]string)
-			requestMap["group"] = "TABLES"
+			requestMap["group"] = "TABLE"
 			requestMap["action"] = "ADD"
 			requestMap["password"] = goposServerPassword
 			requestMap["number"] = tableNumber
@@ -108,6 +108,89 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 		}
 	} else {
 		log.Fatal("Unable to get worker name entry text: ", err)
+	}
+}
+
+func tableDeleteSelectedButtonClicked() {
+	selection, err := tablesTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting tables selection")
+	}
+
+	rows := selection.GetSelectedRows(tablesListStore)
+	if rows == nil {
+		return
+	}
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := tablesListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+	value, err := tablesListStore.GetValue(iter, 0)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	number := value.GetInt()
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "TABLE"
+	requestMap["action"] = "DELETE"
+	requestMap["password"] = goposServerPassword
+	requestMap["number"] = fmt.Sprintf("%d", number)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+	if responseMap["result"] == "OK" {
+		tablesListStore.Remove(iter)
+	}
+}
+
+func getTables() {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "TABLE"
+	requestMap["action"] = "GET"
+	requestMap["password"] = goposServerPassword
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	for {
+		responseMap := make(map[string]string)
+		err = decoder.Decode(&responseMap)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("Error on decoding response: ", err)
+		}
+		number, _ := strconv.Atoi(responseMap["number"])
+		tableAddRow(number)
 	}
 }
 
@@ -153,7 +236,7 @@ func tablesCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-//	tableDeleteSelectedButton.Connect("clicked", tableDeleteSelectedButtonClicked, nil)
+	tableDeleteSelectedButton.Connect("clicked", tableDeleteSelectedButtonClicked, nil)
 
 	tablesFormHbox.PackStart(tableNumberLabel, false, false, 3)
 	tablesFormHbox.PackStart(tableNumberEntry, true, true, 3)

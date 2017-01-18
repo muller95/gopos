@@ -60,12 +60,18 @@ func main() {
 		log.Fatal("Error on creating tables page label: ", err)
 	}
 
-//	mainWindow.Add(workersVbox)
+	menuPageLabel, err := gtk.LabelNew("Меню")
+	if err != nil {
+		log.Fatal("Error on creating menu page label: ", err)
+	}
+
 	notebook.AppendPage(workersCreatePage(), workersPageLabel)
 	notebook.AppendPage(tablesCreatePage(), tablesPageLabel)
+	notebook.AppendPage(menuCreatePage(), menuPageLabel)
 	mainWindow.Add(notebook)
 
 	getWorkers()
+	getTables()
 
 	// Set the default window size.
 	mainWindow.SetDefaultSize(800, 600)
