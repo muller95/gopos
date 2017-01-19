@@ -72,6 +72,7 @@ func main() {
 
 	getWorkers()
 	getTables()
+	getCategories()
 
 	// Set the default window size.
 	mainWindow.SetDefaultSize(800, 600)

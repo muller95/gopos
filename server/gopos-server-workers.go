@@ -37,8 +37,6 @@ func handleWorkerGet(conn net.Conn) {
 			log.Fatal("Error on encode request map: ", err)
 		}
 	}
-
-	conn.Close()
 }
 
 func handleWorkerAdd(requestMap map[string]string, conn net.Conn) {
@@ -74,8 +72,6 @@ func handleWorkerAdd(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on encode request map: ", err)
 	}
-
-	conn.Close()
 }
 
 func handleWorkerDelete(requestMap map[string]string, conn net.Conn) {
@@ -91,6 +87,4 @@ func handleWorkerDelete(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on encode request map: ", err)
 	}
-
-	conn.Close()
 }

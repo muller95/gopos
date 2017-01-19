@@ -3,14 +3,14 @@
 package main
 
 import (
-//	"encoding/json"
-//	"fmt"
-//	"io"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-//	"net"
-//	"strconv"
+	"net"
+	"strconv"
 )
 
 var categoriesTreeView *gtk.TreeView
@@ -40,16 +40,108 @@ func createCategoriesTreeView() {
 	categoriesTreeView.SetModel(categoriesListStore)
 }
 
-/*func categoryAddRow(number int) {
+func categoryAddRow(id int, name string) {
 	iter := tablesListStore.Append()
 
-	err := tablesListStore.Set(iter, []int{ COLUMN_TABLES_NUMBER },
-		[]interface{} { number })
+	err := categoriesListStore.Set(iter, []int{ COLUMN_CATEGORIES_ID, COLUMN_CATEGORIES_NAME },
+		[]interface{} { id, name })
 
 	if err != nil {
 		log.Fatal("Unable to add tables row: ", err)
 	}
-}*/
+}
+
+func getCategories() {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "CATEGORY"
+	requestMap["action"] = "GET"
+	requestMap["password"] = goposServerPassword
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	for {
+		responseMap := make(map[string]string)
+		err = decoder.Decode(&responseMap)
+		fmt.Println(err)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("Error on decoding response: ", err)
+		}
+
+		id, _ := strconv.Atoi(responseMap["id"])
+		categoryAddRow(id, responseMap["name"])
+	}
+	conn.Close()
+}
+
+func categoryAddButtonClicked(btn *gtk.Button, categoryNameEntry *gtk.Entry) {
+	categoryName, err := categoryNameEntry.GetText()
+
+	if err == nil {
+		if len(categoryName) > 0 {
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+				goposServerPort))
+
+			if err != nil {
+				log.Fatal("Unable to connect to server")
+			}
+
+			requestMap := make(map[string]string)
+			requestMap["group"] = "CATEGORY"
+			requestMap["action"] = "ADD"
+			requestMap["password"] = goposServerPassword
+			requestMap["name"] = categoryName
+			encoder := json.NewEncoder(conn)
+			err = encoder.Encode(requestMap)
+			if err != nil {
+				log.Fatal("Error on encode request map: ", requestMap)
+			}
+
+			decoder := json.NewDecoder(conn)
+			responseMap := make(map[string]string)
+			err = decoder.Decode(&responseMap)
+			if err != nil {
+				log.Fatal("Error on decoding response: ", err)
+			}
+
+			id, err := strconv.Atoi(responseMap["id"])
+			if err != nil {
+				log.Fatal("Error on converting id to int: ", err)
+			}
+			if responseMap["result"] == "ERR" {
+				messageDialog := gtk.MessageDialogNew(mainWindow,
+					gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+					responseMap["error"])
+				messageDialog.Run()
+				messageDialog.Destroy()
+				return
+			}
+			categoryAddRow(id, categoryName)
+
+			conn.Close()
+		} else {
+			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
+				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите название категории")
+			messageDialog.Run()
+			messageDialog.Destroy()
+		}
+	} else {
+		log.Fatal("Unable to get worker name entry text: ", err)
+	}
+}
 
 func menuCreatePage() *gtk.Box {
 	//creates tables tabpage
@@ -87,42 +179,42 @@ func menuCreatePage() *gtk.Box {
 	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWindow.Add(categoriesTreeView)
 
-/*	tablesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
+	categoriesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
 	if err != nil {
 		log.Fatal("Unable to create tables form horizontal box: ", err)
 	}
 
-	tableNumberLabel, err := gtk.LabelNew("Номер столика:")
+	categoryNameLabel, err := gtk.LabelNew("Название категории:")
 	if err != nil {
 		log.Fatal("Unable to create label:", err)
 	}
 
-	tableNumberEntry, err := gtk.EntryNew()
+	categoryNameEntry, err := gtk.EntryNew()
 	if err != nil {
 		log.Fatal("Unable to create entry: ", err)
 	}
 
-	tableAddButton, err := gtk.ButtonNewWithLabel("Добавить")
+	categoryAddButton, err := gtk.ButtonNewWithLabel("Добавить")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-	tableAddButton.Connect("clicked", tableAddButtonClicked, tableNumberEntry)
+	categoryAddButton.Connect("clicked", categoryAddButtonClicked, categoryNameEntry)
 
-	tableDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
+	categoryDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-	tableDeleteSelectedButton.Connect("clicked", tableDeleteSelectedButtonClicked, nil)
+//	cateogoryDeleteSelectedButton.Connect("clicked", tableDeleteSelectedButtonClicked, nil)
 
-	tablesFormHbox.PackStart(tableNumberLabel, false, false, 3)
-	tablesFormHbox.PackStart(tableNumberEntry, true, true, 3)
-	tablesFormHbox.PackStart(tableAddButton, true, true, 3)
-	tablesFormHbox.PackStart(tableDeleteSelectedButton, true, true, 3)*/
+	categoriesFormHbox.PackStart(categoryNameLabel, false, false, 3)
+	categoriesFormHbox.PackStart(categoryNameEntry, true, true, 3)
+	categoriesFormHbox.PackStart(categoryAddButton, true, true, 3)
+	categoriesFormHbox.PackStart(categoryDeleteSelectedButton, true, true, 3)
 
 
-//	tablesVbox.PackStart(tablesFormHbox, false, false, 3)
 	categoriesVbox.Add(categoriesFrame)
 	categoriesVbox.PackStart(scrolledWindow, true, true, 3)
+	categoriesVbox.PackStart(categoriesFormHbox, false, false, 3)
 	dishesVbox.Add(dishesFrame)
 	menuHbox.PackStart(categoriesVbox, false, false, 3)
 	menuHbox.PackStart(dishesVbox, true, true, 3)

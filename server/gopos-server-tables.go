@@ -31,20 +31,17 @@ func handleTableGet(conn net.Conn) {
 			log.Fatal("Error on encode request map: ", err)
 		}
 	}
-
-	conn.Close()
 }
 
 func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 	rows, err := dbConn.Query(fmt.Sprintf("SELECT * from tables where number=%s",
 		requestMap["number"]))
-	responseMap := make(map[string]string)
 	if err != nil {
 		log.Fatal("Error on getting tables: ", err)
 	}
 
+	responseMap := make(map[string]string)
 	if rows.Next() {
-		responseMap := make(map[string]string)
 		responseMap["result"] = "ERR"
 		responseMap["error"] = "Столик с таким номером уже есть"
 		encoder := json.NewEncoder(conn)
@@ -68,8 +65,6 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on encode request map: ", err)
 	}
-
-	conn.Close()
 }
 
 func handleTableDelete(requestMap map[string]string, conn net.Conn) {
@@ -86,6 +81,4 @@ func handleTableDelete(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on encode request map: ", err)
 	}
-
-	conn.Close()
 }

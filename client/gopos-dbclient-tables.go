@@ -1,4 +1,5 @@
 //main package for gopos database client
+
 //this file contains functions for tables tree view
 package main
 
@@ -96,10 +97,12 @@ func tableAddButtonClicked(btn *gtk.Button, tableNumberEntry *gtk.Entry) {
 					responseMap["error"])
 				messageDialog.Run()
 				messageDialog.Destroy()
+				conn.Close()
 				return
 			}
 
 			tableAddRow(number)
+			conn.Close()
 		} else {
 			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
 				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите номер столика")
@@ -159,6 +162,7 @@ func tableDeleteSelectedButtonClicked() {
 	if responseMap["result"] == "OK" {
 		tablesListStore.Remove(iter)
 	}
+	conn.Close()
 }
 
 func getTables() {

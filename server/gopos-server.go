@@ -33,6 +33,13 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 				case "DELETE":
 					handleTableDelete(requestMap, conn)
 			}
+		case "CATEGORY":
+			switch requestMap["action"] {
+				case "ADD":
+					handleCategoryAdd(requestMap, conn)
+				case "GET":
+					handleCategoryGet(conn)
+			}
 	}
 }
 
@@ -59,6 +66,7 @@ func handleConnection(conn net.Conn) {
 	}
 
 	handleRequestGroup(requestMap, conn)
+	conn.Close()
 }
 
 func main() {
@@ -86,6 +94,10 @@ func main() {
 
 	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos?parseTime=true", goposSQLUser,
 		goposSQLPassword))
+	_, err = dbConn.Exec("SET CHARSET utf8")
+	if err != nil {
+		log.Fatalf("Error on setting charset: ", err)
+	}
 
 	if err != nil {
 		log.Fatal("Error on opening database", err)

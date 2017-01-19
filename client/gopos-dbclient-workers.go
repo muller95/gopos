@@ -102,9 +102,11 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 					responseMap["error"])
 				messageDialog.Run()
 				messageDialog.Destroy()
+				conn.Close()
 				return
 			}
 			workerAddRow(id, workerName, timeString)
+			conn.Close()
 		} else {
 			messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
 				gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, "Введите имя работника")
@@ -148,6 +150,7 @@ func getWorkers() {
 		id, _ := strconv.Atoi(responseMap["id"])
 		workerAddRow(id, responseMap["name"], responseMap["date"])
 	}
+	conn.Close()
 }
 
 func workerDeleteSelectedButtonClicked() {
@@ -197,6 +200,7 @@ func workerDeleteSelectedButtonClicked() {
 	if responseMap["result"] == "OK" {
 		workersListStore.Remove(iter)
 	}
+	conn.Close()
 }
 
 func workersCreatePage() *gtk.Box {
