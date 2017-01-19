@@ -32,22 +32,22 @@ func createCategoriesTreeView() {
 	categoriesTreeView.AppendColumn(createColumn("ID", COLUMN_CATEGORIES_ID))
 	categoriesTreeView.AppendColumn(createColumn("Название", COLUMN_CATEGORIES_NAME))
 
-	categoriesListStore, err = gtk.ListStoreNew(glib.TYPE_INT)
+	categoriesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING)
 	if err != nil {
-		log.Fatal("Unable to create tables categories store: ", err)
+		log.Fatal("Unable to create categories store: ", err)
 	}
 
 	categoriesTreeView.SetModel(categoriesListStore)
 }
 
 func categoryAddRow(id int, name string) {
-	iter := tablesListStore.Append()
+	iter := categoriesListStore.Append()
 
 	err := categoriesListStore.Set(iter, []int{ COLUMN_CATEGORIES_ID, COLUMN_CATEGORIES_NAME },
 		[]interface{} { id, name })
 
 	if err != nil {
-		log.Fatal("Unable to add tables row: ", err)
+		log.Fatal("Unable to add categories row: ", err)
 	}
 }
 
@@ -73,7 +73,7 @@ func getCategories() {
 	for {
 		responseMap := make(map[string]string)
 		err = decoder.Decode(&responseMap)
-		fmt.Println(err)
+		fmt.Printf("%v %v\n", responseMap, err)
 		if err == io.EOF {
 			break
 		}
@@ -144,7 +144,7 @@ func categoryAddButtonClicked(btn *gtk.Button, categoryNameEntry *gtk.Entry) {
 }
 
 func menuCreatePage() *gtk.Box {
-	//creates tables tabpage
+	//creates menu tabpage
 	menuHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
 	if err != nil {
 		log.Fatal("Unable to create main horizontal box: ", err)
@@ -181,7 +181,7 @@ func menuCreatePage() *gtk.Box {
 
 	categoriesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
 	if err != nil {
-		log.Fatal("Unable to create tables form horizontal box: ", err)
+		log.Fatal("Unable to create categories form horizontal box: ", err)
 	}
 
 	categoryNameLabel, err := gtk.LabelNew("Название категории:")
