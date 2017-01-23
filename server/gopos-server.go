@@ -39,6 +39,8 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 					handleCategoryAdd(requestMap, conn)
 				case "GET":
 					handleCategoryGet(conn)
+				case "DELETE":
+					handleCategoryDelete(requestMap, conn)
 			}
 	}
 }

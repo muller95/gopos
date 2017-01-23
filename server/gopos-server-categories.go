@@ -92,3 +92,19 @@ func handleCategoryAdd(requestMap map[string]string, conn net.Conn) {
 
 	conn.Close()
 }
+
+func handleCategoryDelete(requestMap map[string]string, conn net.Conn) {
+	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM categories where id=%s;",
+		requestMap["id"]))
+	if err != nil {
+		log.Fatal("Error on deleting category: ", err)
+	}
+
+	responseMap := make(map[string]string)
+	responseMap["result"] = fmt.Sprintf("OK")
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", err)
+	}
+}

@@ -13,13 +13,22 @@ import (
 	"strconv"
 )
 
-var categoriesTreeView *gtk.TreeView
-var categoriesListStore *gtk.ListStore
-
 const (
 	COLUMN_CATEGORIES_ID = iota
 	COLUMN_CATEGORIES_NAME
 )
+
+const (
+	COLUMN_DISHES_ID = iota
+	COLUMN_DISHES_NAME
+	COLUMN_DISHES_PRICE
+)
+
+var categoriesTreeView *gtk.TreeView
+var categoriesListStore *gtk.ListStore
+
+var dishesTreeView *gtk.TreeView
+var dishesListStore *gtk.ListStore
 
 func createCategoriesTreeView() {
 	var err error
@@ -35,6 +44,27 @@ func createCategoriesTreeView() {
 	categoriesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING)
 	if err != nil {
 		log.Fatal("Unable to create categories store: ", err)
+	}
+
+	categoriesTreeView.SetModel(categoriesListStore)
+}
+
+func createDishesTreeView() {
+	var err error
+	dishesTreeView, err = gtk.TreeViewNew()
+
+	if err != nil {
+		log.Fatal("Unable to create dishes tree view: ", err)
+	}
+
+	dishesTreeView.AppendColumn(createColumn("ID", COLUMN_DISHES_ID))
+	dishesTreeView.AppendColumn(createColumn("Название", COLUMN_DISHES_NAME))
+	dishesTreeView.AppendColumn(createColumn("Цена", COLUMN_DISHES_PRICE))
+
+	dishesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING,
+		glib.TYPE_DOUBLE)
+	if err != nil {
+		log.Fatal("Unable to create dishes store: ", err)
 	}
 
 	categoriesTreeView.SetModel(categoriesListStore)
@@ -143,6 +173,60 @@ func categoryAddButtonClicked(btn *gtk.Button, categoryNameEntry *gtk.Entry) {
 	}
 }
 
+func categoryDeleteSelectedButtonClicked() {
+	selection, err := categoriesTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting categories selection")
+	}
+	rows := selection.GetSelectedRows(workersListStore)
+	if rows == nil {
+		return
+	}
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := categoriesListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+	value, err := categoriesListStore.GetValue(iter, 0)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	id := value.GetInt()
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "CATEGORY"
+	requestMap["action"] = "DELETE"
+	requestMap["password"] = goposServerPassword
+	requestMap["id"] = fmt.Sprintf("%d", id)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+	if responseMap["result"] == "OK" {
+		categoriesListStore.Remove(iter)
+	}
+	conn.Close()
+}
+
+func categoriesSelectionChanged(selection *gtk.TreeSelection) {
+	fmt.Println("here")
+}
+
 func menuCreatePage() *gtk.Box {
 	//creates menu tabpage
 	menuHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
@@ -172,12 +256,18 @@ func menuCreatePage() *gtk.Box {
 
 
 	createCategoriesTreeView()
-	scrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
+	categoriesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
 	if err != nil {
-		log.Fatalf("Error on creating workers scrolled window")
+		log.Fatalf("Error on creating categories scrolled window")
 	}
-	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-	scrolledWindow.Add(categoriesTreeView)
+	categoriesScrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	categoriesScrolledWindow.Add(categoriesTreeView)
+
+	categoriesSelection, err := categoriesTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting categories selection")
+	}
+	categoriesSelection.Connect("changed", categoriesSelectionChanged, nil)
 
 	categoriesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
 	if err != nil {
@@ -204,7 +294,7 @@ func menuCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-//	cateogoryDeleteSelectedButton.Connect("clicked", tableDeleteSelectedButtonClicked, nil)
+	categoryDeleteSelectedButton.Connect("clicked", categoryDeleteSelectedButtonClicked, nil)
 
 	categoriesFormHbox.PackStart(categoryNameLabel, false, false, 3)
 	categoriesFormHbox.PackStart(categoryNameEntry, true, true, 3)
@@ -213,9 +303,54 @@ func menuCreatePage() *gtk.Box {
 
 
 	categoriesVbox.Add(categoriesFrame)
-	categoriesVbox.PackStart(scrolledWindow, true, true, 3)
+	categoriesVbox.PackStart(categoriesScrolledWindow, true, true, 3)
 	categoriesVbox.PackStart(categoriesFormHbox, false, false, 3)
+
+
+	createDishesTreeView()
+	dishesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
+	if err != nil {
+		log.Fatalf("Error on creating dishes scrolled window")
+	}
+	dishesScrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	dishesScrolledWindow.Add(dishesTreeView)
+
+	dishesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
+	if err != nil {
+		log.Fatal("Unable to create dishes form horizontal box: ", err)
+	}
+
+	dishNameLabel, err := gtk.LabelNew("Название блюда:")
+	if err != nil {
+		log.Fatal("Unable to create label:", err)
+	}
+
+	dishNameEntry, err := gtk.EntryNew()
+	if err != nil {
+		log.Fatal("Unable to create entry: ", err)
+	}
+
+	dishAddButton, err := gtk.ButtonNewWithLabel("Добавить")
+	if err != nil {
+		log.Fatal("Unable to create add button: ", err)
+	}
+//	dishAddButton.Connect("clicked", dishAddButtonClicked, dishNameEntry)
+
+	dishDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
+	if err != nil {
+		log.Fatal("Unable to create add button: ", err)
+	}
+//	categoryDeleteSelectedButton.Connect("clicked", categoryDeleteSelectedButtonClicked, nil)
+
+	dishesFormHbox.PackStart(dishNameLabel, false, false, 3)
+	dishesFormHbox.PackStart(dishNameEntry, true, true, 3)
+	dishesFormHbox.PackStart(dishAddButton, true, true, 3)
+	dishesFormHbox.PackStart(dishDeleteSelectedButton, true, true, 3)
+
 	dishesVbox.Add(dishesFrame)
+	dishesVbox.PackStart(dishesScrolledWindow, true, true, 3)
+	dishesVbox.PackStart(dishesFormHbox, false, false, 3)
+
 	menuHbox.PackStart(categoriesVbox, false, false, 3)
 	menuHbox.PackStart(dishesVbox, true, true, 3)
 	return menuHbox
