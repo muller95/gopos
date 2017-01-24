@@ -11,7 +11,7 @@ import (
 )
 
 func handleWorkerGet(conn net.Conn) {
-	rows, err := dbConn.Query("SELECT * from workers ORDER BY id ASC")
+	rows, err := dbConn.Query("SELECT * FROM workers ORDER BY id ASC")
 	if err != nil {
 		log.Fatal("Error on getting workers ids: ", err)
 	}
@@ -75,7 +75,7 @@ func handleWorkerAdd(requestMap map[string]string, conn net.Conn) {
 }
 
 func handleWorkerDelete(requestMap map[string]string, conn net.Conn) {
-	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM workers where id=%s;", requestMap["id"]))
+	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM workers WHERE id=%s;", requestMap["id"]))
 	if err != nil {
 		log.Fatal("Error on deleting worker: ", err)
 	}

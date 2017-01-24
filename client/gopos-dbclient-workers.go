@@ -92,10 +92,6 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 				log.Fatal("Error on decoding response: ", err)
 			}
 
-			id, err := strconv.Atoi(responseMap["id"])
-			if err != nil {
-				log.Fatal("Error on converting id to int: ", err)
-			}
 			if responseMap["result"] == "ERR" {
 				messageDialog := gtk.MessageDialogNew(mainWindow,
 					gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
@@ -105,6 +101,12 @@ func workerAddButtonClicked(btn *gtk.Button, workerNameEntry *gtk.Entry) {
 				conn.Close()
 				return
 			}
+
+			id, err := strconv.Atoi(responseMap["id"])
+			if err != nil {
+				log.Fatal("Error on converting id to int: ", err)
+			}
+
 			workerAddRow(id, workerName, timeString)
 			conn.Close()
 		} else {
@@ -239,7 +241,7 @@ func workersCreatePage() *gtk.Box {
 	}
 	workerAddButton.Connect("clicked", workerAddButtonClicked, workerNameEntry)
 
-	workerDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
+	workerDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить работника")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}

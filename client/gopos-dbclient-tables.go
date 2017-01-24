@@ -236,7 +236,7 @@ func tablesCreatePage() *gtk.Box {
 	}
 	tableAddButton.Connect("clicked", tableAddButtonClicked, tableNumberEntry)
 
-	tableDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить выбранного")
+	tableDeleteSelectedButton, err := gtk.ButtonNewWithLabel("Удалить столик")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}

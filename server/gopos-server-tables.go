@@ -10,7 +10,7 @@ import (
 )
 
 func handleTableGet(conn net.Conn) {
-	rows, err := dbConn.Query("SELECT * from tables ORDER BY number ASC")
+	rows, err := dbConn.Query("SELECT * FROM tables ORDER BY number ASC")
 	if err != nil {
 		log.Fatal("Error on getting table numbers: ", err)
 	}
@@ -34,7 +34,7 @@ func handleTableGet(conn net.Conn) {
 }
 
 func handleTableAdd(requestMap map[string]string, conn net.Conn) {
-	rows, err := dbConn.Query(fmt.Sprintf("SELECT * from tables where number=%s",
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT * FROM tables WHERE number=%s",
 		requestMap["number"]))
 	if err != nil {
 		log.Fatal("Error on getting tables: ", err)
@@ -68,7 +68,7 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 }
 
 func handleTableDelete(requestMap map[string]string, conn net.Conn) {
-	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM tables where number=%s;",
+	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM tables WHERE number=%s;",
 		requestMap["number"]))
 	if err != nil {
 		log.Fatal("Error on deleting table: ", err)

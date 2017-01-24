@@ -42,6 +42,15 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 				case "DELETE":
 					handleCategoryDelete(requestMap, conn)
 			}
+		case "DISH":
+			switch requestMap["action"] {
+				case "ADD":
+					handleDishAdd(requestMap, conn)
+				case "GET":
+					handleDishGet(requestMap, conn)
+				case "DELETE":
+					handleDishDelete(requestMap, conn)
+			}
 	}
 }
 
