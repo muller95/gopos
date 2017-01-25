@@ -65,9 +65,15 @@ func main() {
 		log.Fatal("Error on creating menu page label: ", err)
 	}
 
+	cardsPageLabel, err := gtk.LabelNew("Клиентские карты")
+	if err != nil {
+		log.Fatal("Error on creating cards page label: ", err)
+	}
+
 	notebook.AppendPage(workersCreatePage(), workersPageLabel)
 	notebook.AppendPage(tablesCreatePage(), tablesPageLabel)
 	notebook.AppendPage(menuCreatePage(), menuPageLabel)
+	notebook.AppendPage(cardsCreatePage(), cardsPageLabel)
 	mainWindow.Add(notebook)
 
 	getWorkers()

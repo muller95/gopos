@@ -551,6 +551,12 @@ func menuCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Unable to create entry: ", err)
 	}
+
+	dishPriceLabel, err := gtk.LabelNew("Цена блюда:")
+	if err != nil {
+		log.Fatal("Unable to create label:", err)
+	}
+
 	dishPriceEntry, err := gtk.EntryNew()
 	if err != nil {
 		log.Fatal("Unable to create entry: ", err)
@@ -573,6 +579,7 @@ func menuCreatePage() *gtk.Box {
 
 	dishesFormHbox.PackStart(dishNameLabel, false, false, 3)
 	dishesFormHbox.PackStart(dishNameEntry, true, true, 3)
+	dishesFormHbox.PackStart(dishPriceLabel, false, false, 3)
 	dishesFormHbox.PackStart(dishPriceEntry, true, true, 3)
 	dishesFormHbox.PackStart(dishAddButton, true, true, 3)
 	dishesFormHbox.PackStart(dishDeleteSelectedButton, true, true, 3)
