@@ -78,8 +78,6 @@ func handleDishAdd(requestMap map[string]string, conn net.Conn) {
 		}
 	}
 
-	fmt.Printf("INSERT INTO dishes VALUES(%d, '%s', %s, %s)\n", id,
-		requestMap["name"], requestMap["price"], requestMap["category_id"])
 	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO dishes VALUES(%d, '%s', %s, %s)", id,
 		requestMap["name"], requestMap["price"], requestMap["category_id"]))
 	if err != nil {

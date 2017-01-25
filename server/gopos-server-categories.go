@@ -93,10 +93,33 @@ func handleCategoryAdd(requestMap map[string]string, conn net.Conn) {
 }
 
 func handleCategoryDelete(requestMap map[string]string, conn net.Conn) {
-	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM categories WHERE id=%s;",
+	tx, err := dbConn.Begin()
+	if err != nil {
+		log.Fatalf("Error on begining category delete transaction: ", err)
+	}
+
+	_, err = tx.Exec(fmt.Sprintf("DELETE FROM categories WHERE id=%s;",
 		requestMap["id"]))
 	if err != nil {
 		log.Fatal("Error on deleting category: ", err)
+	}
+
+	_, err = tx.Exec(fmt.Sprintf("DELETE FROM dishes WHERE category_id=%s", requestMap["id"]))
+	if err != nil {
+		err = tx.Rollback()
+		if err != nil {
+			log.Fatalf("Error on tollback category transaction: ", err)
+		}
+		log.Fatalf("Error on deleting dishes in category: ", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		err = tx.Rollback()
+		if err != nil {
+			log.Fatalf("Error on tollback category transaction: ", err)
+		}
+		log.Fatalf("Error on commiting category transaction: ", err)
 	}
 
 	responseMap := make(map[string]string)
@@ -106,4 +129,6 @@ func handleCategoryDelete(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on encode request map: ", err)
 	}
+
+
 }
