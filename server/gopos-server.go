@@ -51,6 +51,15 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 				case "DELETE":
 					handleDishDelete(requestMap, conn)
 			}
+		case "CARD":
+			switch requestMap["action"] {
+				case "ADD":
+					handleCardAdd(requestMap, conn)
+				case "GET":
+					handleCardGet(conn)
+				case "DELETE":
+					handleCardDelete(requestMap, conn)
+			}
 	}
 }
 

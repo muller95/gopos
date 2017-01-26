@@ -1,5 +1,4 @@
-//main package for gopos database client
-//this file is main, where all the funcs called
+//this package is gopos monitor module
 package main
 
 import (
@@ -39,7 +38,7 @@ func main() {
 		log.Fatal("Unable to create window:", err)
 	}
 
-	mainWindow.SetTitle("gopos-dbclient")
+	mainWindow.SetTitle("gopos-monitor")
 	mainWindow.Connect("destroy", func() {
 		gtk.MainQuit()
 	})
@@ -50,36 +49,15 @@ func main() {
 		log.Fatal("Error on creating notebook: ", err)
 	}
 
-	workersPageLabel, err := gtk.LabelNew("Работники")
+	newOrderPageLabel, err := gtk.LabelNew("Новый заказ")
 	if err != nil {
-		log.Fatal("Error on creating workers page label: ", err)
+		log.Fatal("Error on creating new order page label: ", err)
 	}
 
-	tablesPageLabel, err := gtk.LabelNew("Столики")
-	if err != nil {
-		log.Fatal("Error on creating tables page label: ", err)
-	}
-
-	menuPageLabel, err := gtk.LabelNew("Меню")
-	if err != nil {
-		log.Fatal("Error on creating menu page label: ", err)
-	}
-
-	cardsPageLabel, err := gtk.LabelNew("Клиентские карты")
-	if err != nil {
-		log.Fatal("Error on creating cards page label: ", err)
-	}
-
-	notebook.AppendPage(workersCreatePage(), workersPageLabel)
-	notebook.AppendPage(tablesCreatePage(), tablesPageLabel)
-	notebook.AppendPage(menuCreatePage(), menuPageLabel)
-	notebook.AppendPage(cardsCreatePage(), cardsPageLabel)
+	notebook.AppendPage(newOrderCreatePage(), newOrderPageLabel)
 	mainWindow.Add(notebook)
 
-	getWorkers()
-	getTables()
 	getCategories()
-	getCards()
 
 	// Set the default window size.
 	mainWindow.SetDefaultSize(800, 600)
@@ -91,4 +69,3 @@ func main() {
 	// gtk.MainQuit() is run.
 	gtk.Main()
 }
-

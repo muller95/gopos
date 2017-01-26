@@ -1,4 +1,4 @@
-//this file contains functions to handle requests from table group
+//this file contains functions to handle requests from card group
 package main
 
 import (
@@ -9,23 +9,27 @@ import (
 	"net"
 )
 
-func handleTableGet(conn net.Conn) {
-	rows, err := dbConn.Query("SELECT * FROM tables ORDER BY number ASC")
+func handleCardGet(conn net.Conn) {
+	rows, err := dbConn.Query("SELECT * FROM cards")
 	if err != nil {
-		log.Fatal("Error on getting table numbers: ", err)
+		log.Fatal("Error on getting categories ids: ", err)
 	}
 
 	encoder := json.NewEncoder(conn)
 	for rows.Next() {
-		var number int
+		var cardNumber string
+		var holderName string
+		var discount float64
 
-		err = rows.Scan(&number)
+		err = rows.Scan(&cardNumber, &holderName, &discount)
 		if err != nil {
 			log.Fatal("Error on handling sql response")
 		}
 
 		responseMap := make(map[string]string)
-		responseMap["number"] = fmt.Sprintf("%d", number)
+		responseMap["number"] = cardNumber
+		responseMap["holder_name"] = holderName
+		responseMap["discnount"] = fmt.Sprintf("%f", discount)
 		err = encoder.Encode(responseMap)
 		if err != nil {
 			log.Fatal("Error on encode request map: ", err)
@@ -33,8 +37,8 @@ func handleTableGet(conn net.Conn) {
 	}
 }
 
-func handleTableAdd(requestMap map[string]string, conn net.Conn) {
-	rows, err := dbConn.Query(fmt.Sprintf("SELECT * FROM tables WHERE number=%s",
+func handleCardAdd(requestMap map[string]string, conn net.Conn) {
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT * FROM cards WHERE number='%s'",
 		requestMap["number"]))
 	if err != nil {
 		log.Fatal("Error on getting tables: ", err)
@@ -43,7 +47,7 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 	responseMap := make(map[string]string)
 	if rows.Next() {
 		responseMap["result"] = "ERR"
-		responseMap["error"] = "Столик с таким номером уже есть"
+		responseMap["error"] = "Карта с таким номером уже есть"
 		encoder := json.NewEncoder(conn)
 		err := encoder.Encode(responseMap)
 		if err != nil {
@@ -53,8 +57,8 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 		return
 	}
 
-
-	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO tables VALUES(%s)", requestMap["number"]))
+	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO cards VALUES('%s', '%s', %s)",
+		requestMap["number"], requestMap["holder_name"], requestMap["discount"]))
 	if err != nil {
 		log.Fatal("Error on inserting new table: ", err)
 	}
@@ -67,8 +71,8 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 	}
 }
 
-func handleTableDelete(requestMap map[string]string, conn net.Conn) {
-	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM tables WHERE number=%s;",
+func handleCardDelete(requestMap map[string]string, conn net.Conn) {
+	_, err := dbConn.Exec(fmt.Sprintf("DELETE FROM cards WHERE number='%s';",
 		requestMap["number"]))
 	if err != nil {
 		log.Fatal("Error on deleting table: ", err)

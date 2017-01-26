@@ -3,13 +3,13 @@
 package main
 
 import (
-//	"encoding/json"
-//	"fmt"
-//	"io"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-//	"net"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -107,17 +107,6 @@ func cardAddButtonClicked(btn *gtk.Button, cardInfo *CardInfo) {
 		return
 	}
 
-/*	path := rows.Data().(*gtk.TreePath)
-	iter, err := categoriesListStore.GetIter(path)
-	if err != nil {
-		log.Fatal("Error on getting iter: ", err)
-	}
-	value, err := categoriesListStore.GetValue(iter, 0)
-	if err != nil {
-		log.Fatal("Error on getting value: ", err)
-	}
-	categoryId := value.GetInt()
-
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
 		goposServerPort))
 
@@ -126,12 +115,12 @@ func cardAddButtonClicked(btn *gtk.Button, cardInfo *CardInfo) {
 	}
 
 	requestMap := make(map[string]string)
-	requestMap["group"] = "DISH"
+	requestMap["group"] = "CARD"
 	requestMap["action"] = "ADD"
 	requestMap["password"] = goposServerPassword
-	requestMap["name"] = dishName
-	requestMap["price"] = fmt.Sprintf("%f", price)
-	requestMap["category_id"] = fmt.Sprintf("%d", categoryId)
+	requestMap["number"] = cardNumber
+	requestMap["holder_name"] = cardHolderName
+	requestMap["discount"] = fmt.Sprintf("%f", discount)
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(requestMap)
 	if err != nil {
@@ -154,12 +143,97 @@ func cardAddButtonClicked(btn *gtk.Button, cardInfo *CardInfo) {
 		return
 	}
 
-	id, err := strconv.Atoi(responseMap["id"])
+	cardAddRow(cardNumber, cardHolderName, discount)
+	conn.Close()
+}
+
+func cardDeleteSelectedButtonClicked() {
+	selection, err := cardsTreeView.GetSelection()
 	if err != nil {
-		log.Fatal("Error on converting id to int: ", err)
+		log.Fatal("Error on getting cards selection")
 	}
-	dishAddRow(id, dishName, price)
-	conn.Close()*/
+
+	rows := selection.GetSelectedRows(cardsListStore)
+	if rows == nil {
+		return
+	}
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := cardsListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+	value, err := cardsListStore.GetValue(iter, 0)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	cardNumber, err := value.GetString()
+	if err != nil {
+		log.Fatalf("Error on getting card number string")
+	}
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "CARD"
+	requestMap["action"] = "DELETE"
+	requestMap["password"] = goposServerPassword
+	requestMap["number"] = cardNumber
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+	if responseMap["result"] == "OK" {
+		cardsListStore.Remove(iter)
+	}
+	conn.Close()
+}
+
+func getCards() {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "CARD"
+	requestMap["action"] = "GET"
+	requestMap["password"] = goposServerPassword
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	for {
+		responseMap := make(map[string]string)
+		err = decoder.Decode(&responseMap)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("Error on decoding response: ", err)
+		}
+
+		discount, _ := strconv.ParseFloat(responseMap["discount"], 64)
+		cardAddRow(responseMap["number"], responseMap["holder_name"], discount)
+	}
+	conn.Close()
 }
 
 func cardsCreatePage() *gtk.Box {
@@ -226,7 +300,7 @@ func cardsCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-//	cardDeleteSelectedButton.Connect("clicked", cardDeleteSelectedButtonClicked, nil)
+	cardDeleteSelectedButton.Connect("clicked", cardDeleteSelectedButtonClicked, nil)
 
 	cardsFormHbox.PackStart(cardNumberLabel, false, false, 3)
 	cardsFormHbox.PackStart(cardNumberEntry, true, true, 3)
