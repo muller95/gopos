@@ -18,14 +18,16 @@ func handleTableGet(conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 	for rows.Next() {
 		var number int
+		var currentOrder int
 
-		err = rows.Scan(&number)
+		err = rows.Scan(&number, &currentOrder)
 		if err != nil {
 			log.Fatal("Error on handling sql response")
 		}
 
 		responseMap := make(map[string]string)
 		responseMap["number"] = fmt.Sprintf("%d", number)
+		responseMap["current_order"] = fmt.Sprintf("%d", currentOrder)
 		err = encoder.Encode(responseMap)
 		if err != nil {
 			log.Fatal("Error on encode request map: ", err)
@@ -54,7 +56,7 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 	}
 
 
-	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO tables VALUES(%s)", requestMap["number"]))
+	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO tables VALUES(%s, -1)", requestMap["number"]))
 	if err != nil {
 		log.Fatal("Error on inserting new table: ", err)
 	}

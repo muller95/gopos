@@ -49,15 +49,15 @@ func main() {
 		log.Fatal("Error on creating notebook: ", err)
 	}
 
-	newOrderPageLabel, err := gtk.LabelNew("Новый заказ")
+	freeTablesPageLabel, err := gtk.LabelNew("Свободные столики")
 	if err != nil {
 		log.Fatal("Error on creating new order page label: ", err)
 	}
 
-	notebook.AppendPage(newOrderCreatePage(), newOrderPageLabel)
+	notebook.AppendPage(freeTablesCreatePage(), freeTablesPageLabel)
 	mainWindow.Add(notebook)
 
-	getCategories()
+	getFreeTables()
 
 	// Set the default window size.
 	mainWindow.SetDefaultSize(800, 600)
