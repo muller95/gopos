@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
 	"net"
 	"strconv"
-//	"strings"
+
+	"github.com/gotk3/gotk3/glib"
+	"github.com/gotk3/gotk3/gtk"
 )
 
-type DishInfo struct{
-	DishNameEntry *gtk.Entry
+type DishInfo struct {
+	DishNameEntry  *gtk.Entry
 	DishPriceEntry *gtk.Entry
 }
 
@@ -58,8 +58,8 @@ func createCategoriesTreeView() {
 func categoryAddRow(id int, name string) {
 	iter := categoriesListStore.Append()
 
-	err := categoriesListStore.Set(iter, []int{ COLUMN_CATEGORIES_ID, COLUMN_CATEGORIES_NAME },
-		[]interface{} { id, name })
+	err := categoriesListStore.Set(iter, []int{COLUMN_CATEGORIES_ID, COLUMN_CATEGORIES_NAME},
+		[]interface{}{id, name})
 
 	if err != nil {
 		log.Fatal("Unable to add categories row: ", err)
@@ -90,8 +90,8 @@ func createDishesTreeView() {
 func dishAddRow(id int, name string, price float64) {
 	iter := dishesListStore.Append()
 
-	err := dishesListStore.Set(iter, []int{ COLUMN_DISHES_ID, COLUMN_DISHES_NAME,
-		COLUMN_DISHES_PRICE }, []interface{} { id, name, price })
+	err := dishesListStore.Set(iter, []int{COLUMN_DISHES_ID, COLUMN_DISHES_NAME,
+		COLUMN_DISHES_PRICE}, []interface{}{id, name, price})
 
 	if err != nil {
 		log.Fatal("Unable to add dish row: ", err)
@@ -189,8 +189,63 @@ func categoriesSelectionChanged(selection *gtk.TreeSelection) {
 	}
 }
 
-func newOrderCreatePage() *gtk.Box {
+func dishAddButtonClicked(btn *gtk.Button) {
+	errMessage := ""
+	selection, err := dishesTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting categories selection")
+	}
+	rows := selection.GetSelectedRows(dishesListStore)
+	if rows == nil {
+		errMessage += "Выберите блюда для добавления в заказ."
+	}
+
+	if errMessage != "" {
+		messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL,
+			gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, errMessage)
+		messageDialog.Run()
+		messageDialog.Destroy()
+		return
+	}
+
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := dishesListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+
+	value, err := dishesListStore.GetValue(iter, 0)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	dishId := value.GetInt()
+
+	value, err = dishesListStore.GetValue(iter, 1)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	dishName, err := value.GetString()
+	if err != nil {
+		log.Fatal("Error on getting string: ", err)
+	}
+
+	value, err = dishesListStore.GetValue(iter, 2)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	dishPrice := value.GetDouble()
+	newOrderAddRow(dishId, dishName, dishPrice)
+}
+
+func newOrderCreateWindow() *gtk.Window {
 	//creates menu tabpage
+	newOrderWindow, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
+	if err != nil {
+		log.Fatal("Unable to create window:", err)
+	}
+	newOrderWindow.SetTitle("gopos-monitor-neworder")
+	newOrderWindow.SetDefaultSize(800, 600)
+
 	newOrderVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
 	if err != nil {
 		log.Fatal("Unable to create main vertica; box: ", err)
@@ -220,7 +275,6 @@ func newOrderCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Error on creating dishes frame")
 	}
-
 
 	createCategoriesTreeView()
 	categoriesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
@@ -257,9 +311,11 @@ func newOrderCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-//	categoryAddButton.Connect("clicked", categoryAddButtonClicked, categoryNameEntry)
+	dishAddButton.Connect("clicked", dishAddButtonClicked, nil)
 
 	newOrderVbox.PackStart(menuHbox, true, true, 3)
 	newOrderVbox.PackStart(dishAddButton, false, true, 3)
-	return newOrderVbox
+
+	newOrderWindow.Add(newOrderVbox)
+	return newOrderWindow
 }

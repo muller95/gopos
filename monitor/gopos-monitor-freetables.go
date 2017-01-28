@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
 	"net"
 	"strconv"
+
+	"github.com/gotk3/gotk3/glib"
+	"github.com/gotk3/gotk3/gtk"
 )
 
 var freeTablesTreeView *gtk.TreeView
@@ -41,8 +42,8 @@ func createFreeTablesTreeView() {
 func freeTableAddRow(number int) {
 	iter := freeTablesListStore.Append()
 
-	err := freeTablesListStore.Set(iter, []int{ COLUMN_FREE_TABLES_NUMBER },
-		[]interface{} { number })
+	err := freeTablesListStore.Set(iter, []int{COLUMN_FREE_TABLES_NUMBER},
+		[]interface{}{number})
 
 	if err != nil {
 		log.Fatal("Unable to add tables row: ", err)
@@ -86,6 +87,26 @@ func getFreeTables() {
 	}
 }
 
+func orderCreateButtonClicked(btn *gtk.Button) {
+	btn.SetSensitive(false)
+
+	newOrderWindow := newOrderCreateWindow()
+	getCategories()
+
+	newOrderListWindow := newOrderListCreateWindow()
+
+	newOrderWindow.Connect("destroy", func(window *gtk.Window) {
+		newOrderListWindow.Destroy()
+		btn.SetSensitive(true)
+	})
+	newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
+		btn.SetSensitive(true)
+		newOrderWindow.Destroy()
+	})
+
+	newOrderWindow.ShowAll()
+	newOrderListWindow.ShowAll()
+}
 
 func freeTablesCreatePage() *gtk.Box {
 	//creates tables tabpage
@@ -93,7 +114,6 @@ func freeTablesCreatePage() *gtk.Box {
 	if err != nil {
 		log.Fatal("Unable to create main vertical box: ", err)
 	}
-
 
 	createFreeTablesTreeView()
 	scrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
@@ -103,18 +123,16 @@ func freeTablesCreatePage() *gtk.Box {
 	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWindow.Add(freeTablesTreeView)
 
-/*	freeTablesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
-	if err != nil {
-		log.Fatal("Unable to create tables form horizontal box: ", err)
-	}*/
+	/*	freeTablesFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
+		if err != nil {
+			log.Fatal("Unable to create tables form horizontal box: ", err)
+		}*/
 
 	orderCreateButton, err := gtk.ButtonNewWithLabel("Создать заказ")
 	if err != nil {
 		log.Fatal("Unable to create create order button: ", err)
 	}
-	//tableAddButton.Connect("clicked", tableAddButtonClicked, tableNumberEntry)
-
-//	freeTablesFormHbox.PackStart(orderCreateButton, false, true, 3)
+	orderCreateButton.Connect("clicked", orderCreateButtonClicked, nil)
 
 	freeTablesVbox.PackStart(scrolledWindow, true, true, 3)
 	freeTablesVbox.PackStart(orderCreateButton, false, true, 3)

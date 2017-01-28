@@ -3,8 +3,8 @@ package main
 
 import (
 	"log"
-	"github.com/gotk3/gotk3/gtk"
 	"os"
+	"github.com/gotk3/gotk3/gtk"
 )
 
 var mainWindow *gtk.Window
