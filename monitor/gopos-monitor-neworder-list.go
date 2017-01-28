@@ -3,6 +3,7 @@ package main
 import (
 	//	"encoding/json"
 	//	"fmt"
+
 	"fmt"
 	"log"
 	//	"net"
@@ -43,12 +44,49 @@ func createNewOrderTreeView() {
 
 func newOrderAddRow(id int, name string, price float64) {
 	iter := newOrderListStore.Append()
-	fmt.Println(id, name, price)
+
 	err := newOrderListStore.Set(iter, []int{COLUMN_NEW_ORDER_DISH_ID, COLUMN_NEW_ORDER_DISH_NAME,
 		COLUMN_NEW_ORDER_DISH_PRICE}, []interface{}{id, name, price})
 
 	if err != nil {
 		log.Fatal("Unable to add tables row: ", err)
+	}
+}
+
+func dishNewOrderDeleteSelectedButtonClicked() {
+	selection, err := newOrderTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting new order selection")
+	}
+
+	rows := selection.GetSelectedRows(newOrderListStore)
+	if rows == nil {
+		return
+	}
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := newOrderListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+	newOrderListStore.Remove(iter)
+}
+
+func newOrderConfirmButtonClicked() {
+	iter, isNotEmpty := newOrderListStore.GetIterFirst()
+	if !isNotEmpty {
+		return
+	}
+
+	for {
+		value, err := newOrderListStore.GetValue(iter, COLUMN_NEW_ORDER_DISH_ID)
+		if err != nil {
+			log.Fatal("Error on getting value: ", err)
+		}
+		dishId := value.GetInt()
+		fmt.Println(dishId)
+		if !newOrderListStore.IterNext(iter) {
+			break
+		}
 	}
 }
 
@@ -73,7 +111,21 @@ func newOrderListCreateWindow() *gtk.Window {
 	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWindow.Add(newOrderTreeView)
 
+	dishDeleteButton, err := gtk.ButtonNewWithLabel("Удалить из заказа")
+	if err != nil {
+		log.Fatal("Unable to create delete button: ", err)
+	}
+	dishDeleteButton.Connect("clicked", dishNewOrderDeleteSelectedButtonClicked, nil)
+
+	newOrderConfirm, err := gtk.ButtonNewWithLabel("Подтвердить заказ")
+	if err != nil {
+		log.Fatal("Unable to create comfirm button: ", err)
+	}
+	newOrderConfirm.Connect("clicked", newOrderConfirmButtonClicked)
+
 	newOrderVbox.PackStart(scrolledWindow, true, true, 3)
+	newOrderVbox.PackStart(dishDeleteButton, false, true, 3)
+	newOrderVbox.PackStart(newOrderConfirm, false, true, 3)
 
 	newOrderListWindow.Add(newOrderVbox)
 

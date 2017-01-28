@@ -88,6 +88,16 @@ func getFreeTables() {
 }
 
 func orderCreateButtonClicked(btn *gtk.Button) {
+	selection, err := freeTablesTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting new order selection")
+	}
+
+	rows := selection.GetSelectedRows(freeTablesListStore)
+	if rows == nil {
+		return
+	}
+
 	btn.SetSensitive(false)
 
 	newOrderWindow := newOrderCreateWindow()
