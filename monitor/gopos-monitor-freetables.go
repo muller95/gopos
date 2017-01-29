@@ -111,25 +111,40 @@ func orderCreateButtonClicked(btn *gtk.Button) {
 	btn.SetSensitive(false)
 
 	newOrderWindow := newOrderCreateWindow()
-	getCategories()
+	getNewOrderCategories()
 
 	newOrderListWindow := newOrderListCreateWindow()
 
 	newOrderWindow.Connect("destroy", func(window *gtk.Window) {
 		orderPrice = 0.0
 		tableNumber = 0.0
+		freeTablesListStore.Clear()
+		getFreeTables()
+		orderedTablesListStore.Clear()
+		getOrderedTables()
 		newOrderListWindow.Destroy()
 		btn.SetSensitive(true)
 	})
 	newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
 		orderPrice = 0.0
 		tableNumber = 0.0
+		freeTablesListStore.Clear()
+		getFreeTables()
+		orderedTablesListStore.Clear()
+		getOrderedTables()
 		btn.SetSensitive(true)
 		newOrderWindow.Destroy()
 	})
 
 	newOrderWindow.ShowAll()
 	newOrderListWindow.ShowAll()
+}
+
+func updateTablesButtonClicked() {
+	freeTablesListStore.Clear()
+	getFreeTables()
+	orderedTablesListStore.Clear()
+	getOrderedTables()
 }
 
 func freeTablesCreatePage() *gtk.Box {
@@ -153,8 +168,15 @@ func freeTablesCreatePage() *gtk.Box {
 	}
 	orderCreateButton.Connect("clicked", orderCreateButtonClicked, nil)
 
+	updateTablesButton, err := gtk.ButtonNewWithLabel("Обновить данные")
+	if err != nil {
+		log.Fatal("Unable to create create order button: ", err)
+	}
+	updateTablesButton.Connect("clicked", updateTablesButtonClicked, nil)
+
 	freeTablesVbox.PackStart(scrolledWindow, true, true, 3)
 	freeTablesVbox.PackStart(orderCreateButton, false, true, 3)
+	freeTablesVbox.PackStart(updateTablesButton, false, true, 3)
 
 	return freeTablesVbox
 }

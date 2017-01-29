@@ -4,14 +4,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	_"github.com/go-sql-driver/mysql"
 	"log"
 	"net"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func handleDishGet(requestMap map[string]string, conn net.Conn) {
-	rows, err := dbConn.Query(fmt.Sprintf("SELECT id, name, price FROM dishes " +
-	"WHERE category_id=%s ORDER BY id ASC", requestMap["category_id"]))
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT id, name, price FROM dishes "+
+		"WHERE category_id=%s ORDER BY id ASC", requestMap["category_id"]))
 	if err != nil {
 		log.Fatal("Error on getting categories ids: ", err)
 	}
@@ -39,7 +40,7 @@ func handleDishGet(requestMap map[string]string, conn net.Conn) {
 }
 
 func handleDishAdd(requestMap map[string]string, conn net.Conn) {
-	rows, err := dbConn.Query(fmt.Sprintf("SELECT * FROM dishes WHERE name='%s' AND " +
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT * FROM dishes WHERE name='%s' AND "+
 		"category_id=%s", requestMap["name"], requestMap["category_id"]))
 	if err != nil {
 		log.Fatal("Error on getting category names: ", err)
@@ -66,7 +67,7 @@ func handleDishAdd(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on getting workers ids: ", err)
 	}
 
-	for ;rows.Next(); id++ {
+	for ; rows.Next(); id++ {
 		var currId int
 		err := rows.Scan(&currId)
 		if err != nil {

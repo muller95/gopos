@@ -85,3 +85,7 @@ func handleOrderCreate(requestMap map[string]string, conn net.Conn) {
 
 	mutex.Unlock()
 }
+
+/*func handleOrdersGet(requestMap map[string]string, conn net.Conn) {
+	_, err := dbConn.Query(fmt.Sprntf("SELECT orders ")
+}*/

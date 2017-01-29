@@ -14,93 +14,89 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-type DishInfo struct {
-	DishNameEntry  *gtk.Entry
-	DishPriceEntry *gtk.Entry
-}
-
 const (
-	COLUMN_CATEGORIES_ID = iota
-	COLUMN_CATEGORIES_NAME
+	COLUMN_NEW_ORDER_CATEGORIES_ID = iota
+	COLUMN_NEW_ORDER_CATEGORIES_NAME
 )
 
 const (
-	COLUMN_DISHES_ID = iota
-	COLUMN_DISHES_NAME
-	COLUMN_DISHES_PRICE
+	COLUMN_NEW_ORDER_DISHES_ID = iota
+	COLUMN_NEW_ORDER_DISHES_NAME
+	COLUMN_NEW_ORDER_DISHES_PRICE
 )
 
 var newOrderWindow *gtk.Window
 
-var categoriesTreeView *gtk.TreeView
-var categoriesListStore *gtk.ListStore
+var newOrderCategoriesTreeView *gtk.TreeView
+var newOrderCategoriesListStore *gtk.ListStore
 
-var dishesTreeView *gtk.TreeView
-var dishesListStore *gtk.ListStore
+var newOrderDishesTreeView *gtk.TreeView
+var newOrderDishesListStore *gtk.ListStore
 
-func createCategoriesTreeView() {
+func createNewOrderCategoriesTreeView() {
 	var err error
-	categoriesTreeView, err = gtk.TreeViewNew()
+	newOrderCategoriesTreeView, err = gtk.TreeViewNew()
 
 	if err != nil {
 		log.Fatal("Unable to create cateogories tree view: ", err)
 	}
 
-	categoriesTreeView.AppendColumn(createColumn("ID", COLUMN_CATEGORIES_ID))
-	categoriesTreeView.AppendColumn(createColumn("Название", COLUMN_CATEGORIES_NAME))
+	newOrderCategoriesTreeView.AppendColumn(createColumn("ID", COLUMN_NEW_ORDER_CATEGORIES_ID))
+	newOrderCategoriesTreeView.AppendColumn(createColumn("Название",
+		COLUMN_NEW_ORDER_CATEGORIES_NAME))
 
-	categoriesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING)
+	newOrderCategoriesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING)
 	if err != nil {
-		log.Fatal("Unable to create categories store: ", err)
+		log.Fatal("Unable to create newOrderCategories store: ", err)
 	}
 
-	categoriesTreeView.SetModel(categoriesListStore)
+	newOrderCategoriesTreeView.SetModel(newOrderCategoriesListStore)
 }
 
-func categoryAddRow(id int, name string) {
-	iter := categoriesListStore.Append()
+func newOrderCategoryAddRow(id int, name string) {
+	iter := newOrderCategoriesListStore.Append()
 
-	err := categoriesListStore.Set(iter, []int{COLUMN_CATEGORIES_ID, COLUMN_CATEGORIES_NAME},
-		[]interface{}{id, name})
+	err := newOrderCategoriesListStore.Set(iter, []int{COLUMN_NEW_ORDER_CATEGORIES_ID,
+		COLUMN_NEW_ORDER_CATEGORIES_NAME}, []interface{}{id, name})
 
 	if err != nil {
-		log.Fatal("Unable to add categories row: ", err)
+		log.Fatal("Unable to add newOrderCategories row: ", err)
 	}
 }
 
-func createDishesTreeView() {
+func createNewOrderDishesTreeView() {
 	var err error
-	dishesTreeView, err = gtk.TreeViewNew()
+	newOrderDishesTreeView, err = gtk.TreeViewNew()
 
 	if err != nil {
-		log.Fatal("Unable to create dishes tree view: ", err)
+		log.Fatal("Unable to create newOrderDishes tree view: ", err)
 	}
 
-	dishesTreeView.AppendColumn(createColumn("ID", COLUMN_DISHES_ID))
-	dishesTreeView.AppendColumn(createColumn("Название", COLUMN_DISHES_NAME))
-	dishesTreeView.AppendColumn(createColumn("Цена", COLUMN_DISHES_PRICE))
+	newOrderDishesTreeView.AppendColumn(createColumn("ID", COLUMN_NEW_ORDER_DISHES_ID))
+	newOrderDishesTreeView.AppendColumn(createColumn("Название", COLUMN_NEW_ORDER_DISHES_NAME))
+	newOrderDishesTreeView.AppendColumn(createColumn("Цена", COLUMN_NEW_ORDER_DISHES_PRICE))
 
-	dishesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING,
+	newOrderDishesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING,
 		glib.TYPE_DOUBLE)
 	if err != nil {
-		log.Fatal("Unable to create dishes store: ", err)
+		log.Fatal("Unable to create newOrderDishes store: ", err)
 	}
 
-	dishesTreeView.SetModel(dishesListStore)
+	newOrderDishesTreeView.SetModel(newOrderDishesListStore)
 }
 
-func dishAddRow(id int, name string, price float64) {
-	iter := dishesListStore.Append()
+func newOrderDishAddRow(id int, name string, price float64) {
+	iter := newOrderDishesListStore.Append()
 
-	err := dishesListStore.Set(iter, []int{COLUMN_DISHES_ID, COLUMN_DISHES_NAME,
-		COLUMN_DISHES_PRICE}, []interface{}{id, name, price})
+	err := newOrderDishesListStore.Set(iter, []int{COLUMN_NEW_ORDER_DISHES_ID, COLUMN_NEW_ORDER_DISHES_NAME,
+		COLUMN_NEW_ORDER_DISHES_PRICE}, []interface{}{id, name, price})
 
 	if err != nil {
-		log.Fatal("Unable to add dish row: ", err)
+		log.Fatal("Unable to add newOrderDish row: ", err)
 	}
 }
 
-func getCategories() {
+func getNewOrderCategories() {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
 		goposServerPort))
 
@@ -130,30 +126,30 @@ func getCategories() {
 		}
 
 		id, _ := strconv.Atoi(responseMap["id"])
-		categoryAddRow(id, responseMap["name"])
+		newOrderCategoryAddRow(id, responseMap["name"])
 	}
 	conn.Close()
 }
 
-func categoriesSelectionChanged(selection *gtk.TreeSelection) {
-	dishesListStore.Clear()
-	selection, err := categoriesTreeView.GetSelection()
+func newOrderCategoriesSelectionChanged(selection *gtk.TreeSelection) {
+	newOrderDishesListStore.Clear()
+	selection, err := newOrderCategoriesTreeView.GetSelection()
 	if err != nil {
-		log.Fatal("Error on getting categories selection")
+		log.Fatal("Error on getting newOrderCategories selection")
 	}
-	rows := selection.GetSelectedRows(categoriesListStore)
+	rows := selection.GetSelectedRows(newOrderCategoriesListStore)
 	if rows == nil {
 		return
 	}
 
 	path := rows.Data().(*gtk.TreePath)
-	iter, err := categoriesListStore.GetIter(path)
+	iter, err := newOrderCategoriesListStore.GetIter(path)
 
-	value, err := categoriesListStore.GetValue(iter, 0)
+	value, err := newOrderCategoriesListStore.GetValue(iter, 0)
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	categoryId := value.GetInt()
+	newOrderCategoryId := value.GetInt()
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
 		goposServerPort))
@@ -166,7 +162,7 @@ func categoriesSelectionChanged(selection *gtk.TreeSelection) {
 	requestMap["group"] = "DISH"
 	requestMap["action"] = "GET"
 	requestMap["password"] = goposServerPassword
-	requestMap["category_id"] = fmt.Sprintf("%d", categoryId)
+	requestMap["category_id"] = fmt.Sprintf("%d", newOrderCategoryId)
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(requestMap)
 	if err != nil {
@@ -187,17 +183,17 @@ func categoriesSelectionChanged(selection *gtk.TreeSelection) {
 
 		id, _ := strconv.Atoi(responseMap["id"])
 		price, _ := strconv.ParseFloat(responseMap["price"], 64)
-		dishAddRow(id, responseMap["name"], price)
+		newOrderDishAddRow(id, responseMap["name"], price)
 	}
 }
 
-func dishAddButtonClicked(btn *gtk.Button) {
+func newOrderDishAddButtonClicked(btn *gtk.Button) {
 	errMessage := ""
-	selection, err := dishesTreeView.GetSelection()
+	selection, err := newOrderDishesTreeView.GetSelection()
 	if err != nil {
-		log.Fatal("Error on getting categories selection")
+		log.Fatal("Error on getting newOrderCategories selection")
 	}
-	rows := selection.GetSelectedRows(dishesListStore)
+	rows := selection.GetSelectedRows(newOrderDishesListStore)
 	if rows == nil {
 		errMessage += "Выберите блюда для добавления в заказ."
 	}
@@ -211,34 +207,34 @@ func dishAddButtonClicked(btn *gtk.Button) {
 	}
 
 	path := rows.Data().(*gtk.TreePath)
-	iter, err := dishesListStore.GetIter(path)
+	iter, err := newOrderDishesListStore.GetIter(path)
 	if err != nil {
 		log.Fatal("Error on getting iter: ", err)
 	}
 
-	value, err := dishesListStore.GetValue(iter, 0)
+	value, err := newOrderDishesListStore.GetValue(iter, 0)
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	dishId := value.GetInt()
+	newOrderDishId := value.GetInt()
 
-	value, err = dishesListStore.GetValue(iter, 1)
+	value, err = newOrderDishesListStore.GetValue(iter, 1)
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	dishName, err := value.GetString()
+	newOrderDishName, err := value.GetString()
 	if err != nil {
 		log.Fatal("Error on getting string: ", err)
 	}
 
-	value, err = dishesListStore.GetValue(iter, 2)
+	value, err = newOrderDishesListStore.GetValue(iter, 2)
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	dishPrice := value.GetDouble()
-	orderPrice += dishPrice
+	newOrderDishPrice := value.GetDouble()
+	orderPrice += newOrderDishPrice
 	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", orderPrice))
-	newOrderAddRow(dishId, dishName, dishPrice)
+	newOrderAddRow(newOrderDishId, newOrderDishName, newOrderDishPrice)
 }
 
 func newOrderCreateWindow() *gtk.Window {
@@ -261,65 +257,65 @@ func newOrderCreateWindow() *gtk.Window {
 		log.Fatal("Unable to create menu horizontal box: ", err)
 	}
 
-	categoriesVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
+	newOrderCategoriesVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
 	if err != nil {
-		log.Fatal("Unable to create categories vertical box: ", err)
+		log.Fatal("Unable to create newOrderCategories vertical box: ", err)
 	}
 
-	dishesVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
+	newOrderDishesVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
 	if err != nil {
-		log.Fatal("Unable to create dishes vertical box: ", err)
+		log.Fatal("Unable to create newOrderDishes vertical box: ", err)
 	}
 
-	categoriesFrame, err := gtk.FrameNew("Категории меню")
+	newOrderCategoriesFrame, err := gtk.FrameNew("Категории меню")
 	if err != nil {
-		log.Fatal("Error on creating categories frame")
+		log.Fatal("Error on creating newOrderCategories frame")
 	}
 
-	dishesFrame, err := gtk.FrameNew("Блюда")
+	newOrderDishesFrame, err := gtk.FrameNew("Блюда")
 	if err != nil {
-		log.Fatal("Error on creating dishes frame")
+		log.Fatal("Error on creating newOrderDishes frame")
 	}
 
-	createCategoriesTreeView()
-	categoriesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
+	createNewOrderCategoriesTreeView()
+	newOrderCategoriesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
 	if err != nil {
-		log.Fatalf("Error on creating categories scrolled window")
+		log.Fatalf("Error on creating newOrderCategories scrolled window")
 	}
-	categoriesScrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-	categoriesScrolledWindow.Add(categoriesTreeView)
+	newOrderCategoriesScrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	newOrderCategoriesScrolledWindow.Add(newOrderCategoriesTreeView)
 
-	categoriesSelection, err := categoriesTreeView.GetSelection()
+	newOrderCategoriesSelection, err := newOrderCategoriesTreeView.GetSelection()
 	if err != nil {
-		log.Fatal("Error on getting categories selection")
+		log.Fatal("Error on getting newOrderCategories selection")
 	}
-	categoriesSelection.Connect("changed", categoriesSelectionChanged, nil)
+	newOrderCategoriesSelection.Connect("changed", newOrderCategoriesSelectionChanged, nil)
 
-	categoriesVbox.Add(categoriesFrame)
-	categoriesVbox.PackStart(categoriesScrolledWindow, true, true, 3)
+	newOrderCategoriesVbox.Add(newOrderCategoriesFrame)
+	newOrderCategoriesVbox.PackStart(newOrderCategoriesScrolledWindow, true, true, 3)
 
-	createDishesTreeView()
-	dishesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
+	createNewOrderDishesTreeView()
+	newOrderDishesScrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
 	if err != nil {
-		log.Fatalf("Error on creating dishes scrolled window")
+		log.Fatalf("Error on creating newOrderDishes scrolled window")
 	}
-	dishesScrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-	dishesScrolledWindow.Add(dishesTreeView)
+	newOrderDishesScrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	newOrderDishesScrolledWindow.Add(newOrderDishesTreeView)
 
-	dishesVbox.Add(dishesFrame)
-	dishesVbox.PackStart(dishesScrolledWindow, true, true, 3)
+	newOrderDishesVbox.Add(newOrderDishesFrame)
+	newOrderDishesVbox.PackStart(newOrderDishesScrolledWindow, true, true, 3)
 
-	menuHbox.PackStart(categoriesVbox, false, false, 3)
-	menuHbox.PackStart(dishesVbox, true, true, 3)
+	menuHbox.PackStart(newOrderCategoriesVbox, false, false, 3)
+	menuHbox.PackStart(newOrderDishesVbox, true, true, 3)
 
-	dishAddButton, err := gtk.ButtonNewWithLabel("Добавить к заказу")
+	newOrderDishAddButton, err := gtk.ButtonNewWithLabel("Добавить к заказу")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-	dishAddButton.Connect("clicked", dishAddButtonClicked, nil)
+	newOrderDishAddButton.Connect("clicked", newOrderDishAddButtonClicked, nil)
 
 	newOrderVbox.PackStart(menuHbox, true, true, 3)
-	newOrderVbox.PackStart(dishAddButton, false, true, 3)
+	newOrderVbox.PackStart(newOrderDishAddButton, false, true, 3)
 
 	newOrderWindow.Add(newOrderVbox)
 	return newOrderWindow

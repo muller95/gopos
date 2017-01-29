@@ -12,6 +12,10 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
+const (
+	COLUMN_ORDERED_TABLES_NUMBER = iota
+)
+
 var orderedTablesTreeView *gtk.TreeView
 var orderedTablesListStore *gtk.ListStore
 
@@ -23,7 +27,7 @@ func createOrderedTablesTreeView() {
 		log.Fatal("Unable to create tables tree view: ", err)
 	}
 
-	orderedTablesTreeView.AppendColumn(createColumn("Номер", COLUMN_FREE_TABLES_NUMBER))
+	orderedTablesTreeView.AppendColumn(createColumn("Номер", COLUMN_ORDERED_TABLES_NUMBER))
 
 	orderedTablesListStore, err = gtk.ListStoreNew(glib.TYPE_INT)
 	if err != nil {
@@ -36,7 +40,7 @@ func createOrderedTablesTreeView() {
 func orderedTableAddRow(number int) {
 	iter := orderedTablesListStore.Append()
 
-	err := orderedTablesListStore.Set(iter, []int{COLUMN_FREE_TABLES_NUMBER},
+	err := orderedTablesListStore.Set(iter, []int{COLUMN_ORDERED_TABLES_NUMBER},
 		[]interface{}{number})
 
 	if err != nil {
@@ -82,21 +86,21 @@ func getOrderedTables() {
 }
 
 func orderEditButtonClicked(btn *gtk.Button) {
-	/*selection, err := freeTablesTreeView.GetSelection()
+	selection, err := orderedTablesTreeView.GetSelection()
 	if err != nil {
 		log.Fatal("Error on getting new order selection")
 	}
 
-	rows := selection.GetSelectedRows(freeTablesListStore)
+	rows := selection.GetSelectedRows(orderedTablesListStore)
 	if rows == nil {
 		return
 	}
 	path := rows.Data().(*gtk.TreePath)
-	iter, err := freeTablesListStore.GetIter(path)
+	iter, err := orderedTablesListStore.GetIter(path)
 	if err != nil {
 		log.Fatal("Error on getting iter: ", err)
 	}
-	value, err := freeTablesListStore.GetValue(iter, COLUMN_FREE_TABLES_NUMBER)
+	value, err := orderedTablesListStore.GetValue(iter, COLUMN_ORDERED_TABLES_NUMBER)
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
@@ -104,22 +108,22 @@ func orderEditButtonClicked(btn *gtk.Button) {
 
 	btn.SetSensitive(false)
 
-	newOrderWindow := newOrderCreateWindow()
-	getCategories()
+	existingOrderWindow := existingOrderCreateWindow()
+	getExistingOrderCategories()
 
-	newOrderListWindow := newOrderListCreateWindow()
+	// newOrderListWindow := newOrderListCreateWindow()
 
-	newOrderWindow.Connect("destroy", func(window *gtk.Window) {
-		newOrderListWindow.Destroy()
+	existingOrderWindow.Connect("destroy", func(window *gtk.Window) {
+		// newOrderListWindow.Destroy()
 		btn.SetSensitive(true)
 	})
-	newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
+	/*newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
 		btn.SetSensitive(true)
 		newOrderWindow.Destroy()
-	})
+	})*/
 
-	newOrderWindow.ShowAll()
-	newOrderListWindow.ShowAll()*/
+	existingOrderWindow.ShowAll()
+	// newOrderListWindow.ShowAll()
 }
 
 func orderedTablesCreatePage() *gtk.Box {
@@ -144,7 +148,7 @@ func orderedTablesCreatePage() *gtk.Box {
 	orderEditButton.Connect("clicked", orderEditButtonClicked, nil)
 
 	orderedTablesVbox.PackStart(scrolledWindow, true, true, 3)
-	// orderedTablesVbox.PackStart(orderCreateButton, false, true, 3)
+	orderedTablesVbox.PackStart(orderEditButton, false, true, 3)
 
 	return orderedTablesVbox
 }

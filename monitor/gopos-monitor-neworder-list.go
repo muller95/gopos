@@ -19,9 +19,9 @@ var newOrderListWindow *gtk.Window
 var orderPrice float64
 
 const (
-	COLUMN_NEW_ORDER_DISH_ID = iota
-	COLUMN_NEW_ORDER_DISH_NAME
-	COLUMN_NEW_ORDER_DISH_PRICE
+	COLUMN_NEW_ORDER_LIST_DISH_ID = iota
+	COLUMN_NEW_ORDER_LIST_DISH_NAME
+	COLUMN_NEW_ORDER_LIST_DISH_PRICE
 )
 
 func createNewOrderTreeView() {
@@ -32,9 +32,9 @@ func createNewOrderTreeView() {
 		log.Fatal("Unable to create tables tree view: ", err)
 	}
 
-	newOrderTreeView.AppendColumn(createColumn("ID", COLUMN_NEW_ORDER_DISH_ID))
-	newOrderTreeView.AppendColumn(createColumn("Название блюда", COLUMN_NEW_ORDER_DISH_NAME))
-	newOrderTreeView.AppendColumn(createColumn("Цена", COLUMN_NEW_ORDER_DISH_PRICE))
+	newOrderTreeView.AppendColumn(createColumn("ID", COLUMN_NEW_ORDER_LIST_DISH_ID))
+	newOrderTreeView.AppendColumn(createColumn("Название блюда", COLUMN_NEW_ORDER_LIST_DISH_NAME))
+	newOrderTreeView.AppendColumn(createColumn("Цена", COLUMN_NEW_ORDER_LIST_DISH_PRICE))
 
 	newOrderListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING, glib.TYPE_DOUBLE)
 	if err != nil {
@@ -47,8 +47,8 @@ func createNewOrderTreeView() {
 func newOrderAddRow(id int, name string, price float64) {
 	iter := newOrderListStore.Append()
 
-	err := newOrderListStore.Set(iter, []int{COLUMN_NEW_ORDER_DISH_ID, COLUMN_NEW_ORDER_DISH_NAME,
-		COLUMN_NEW_ORDER_DISH_PRICE}, []interface{}{id, name, price})
+	err := newOrderListStore.Set(iter, []int{COLUMN_NEW_ORDER_LIST_DISH_ID, COLUMN_NEW_ORDER_LIST_DISH_NAME,
+		COLUMN_NEW_ORDER_LIST_DISH_PRICE}, []interface{}{id, name, price})
 
 	if err != nil {
 		log.Fatal("Unable to add tables row: ", err)
@@ -88,7 +88,7 @@ func newOrderConfirmButtonClicked() {
 	}
 
 	for {
-		value, err := newOrderListStore.GetValue(iter, COLUMN_NEW_ORDER_DISH_ID)
+		value, err := newOrderListStore.GetValue(iter, COLUMN_NEW_ORDER_LIST_DISH_ID)
 		if err != nil {
 			log.Fatal("Error on getting value: ", err)
 		}

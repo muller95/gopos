@@ -4,6 +4,7 @@ package main
 
 import (
 	"log"
+
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -20,4 +21,3 @@ func createColumn(title string, id int) *gtk.TreeViewColumn {
 
 	return column
 }
-
