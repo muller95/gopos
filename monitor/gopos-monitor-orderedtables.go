@@ -12,37 +12,31 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-var freeTablesTreeView *gtk.TreeView
-var freeTablesListStore *gtk.ListStore
+var orderedTablesTreeView *gtk.TreeView
+var orderedTablesListStore *gtk.ListStore
 
-var tableNumber int
-
-const (
-	COLUMN_FREE_TABLES_NUMBER = iota
-)
-
-func createFreeTablesTreeView() {
+func createOrderedTablesTreeView() {
 	var err error
-	freeTablesTreeView, err = gtk.TreeViewNew()
+	orderedTablesTreeView, err = gtk.TreeViewNew()
 
 	if err != nil {
 		log.Fatal("Unable to create tables tree view: ", err)
 	}
 
-	freeTablesTreeView.AppendColumn(createColumn("Номер", COLUMN_FREE_TABLES_NUMBER))
+	orderedTablesTreeView.AppendColumn(createColumn("Номер", COLUMN_FREE_TABLES_NUMBER))
 
-	freeTablesListStore, err = gtk.ListStoreNew(glib.TYPE_INT)
+	orderedTablesListStore, err = gtk.ListStoreNew(glib.TYPE_INT)
 	if err != nil {
 		log.Fatal("Unable to create tables list store: ", err)
 	}
 
-	freeTablesTreeView.SetModel(freeTablesListStore)
+	orderedTablesTreeView.SetModel(orderedTablesListStore)
 }
 
-func freeTableAddRow(number int) {
-	iter := freeTablesListStore.Append()
+func orderedTableAddRow(number int) {
+	iter := orderedTablesListStore.Append()
 
-	err := freeTablesListStore.Set(iter, []int{COLUMN_FREE_TABLES_NUMBER},
+	err := orderedTablesListStore.Set(iter, []int{COLUMN_FREE_TABLES_NUMBER},
 		[]interface{}{number})
 
 	if err != nil {
@@ -50,7 +44,7 @@ func freeTableAddRow(number int) {
 	}
 }
 
-func getFreeTables() {
+func getOrderedTables() {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
 		goposServerPort))
 
@@ -78,17 +72,17 @@ func getFreeTables() {
 		if err != nil {
 			log.Fatal("Error on decoding response: ", err)
 		}
-		if responseMap["current_order"] != "-1" {
+		if responseMap["current_order"] == "-1" {
 			continue
 		}
 
 		number, _ := strconv.Atoi(responseMap["number"])
-		freeTableAddRow(number)
+		orderedTableAddRow(number)
 	}
 }
 
-func orderCreateButtonClicked(btn *gtk.Button) {
-	selection, err := freeTablesTreeView.GetSelection()
+func orderEditButtonClicked(btn *gtk.Button) {
+	/*selection, err := freeTablesTreeView.GetSelection()
 	if err != nil {
 		log.Fatal("Error on getting new order selection")
 	}
@@ -116,45 +110,41 @@ func orderCreateButtonClicked(btn *gtk.Button) {
 	newOrderListWindow := newOrderListCreateWindow()
 
 	newOrderWindow.Connect("destroy", func(window *gtk.Window) {
-		orderPrice = 0.0
-		tableNumber = 0.0
 		newOrderListWindow.Destroy()
 		btn.SetSensitive(true)
 	})
 	newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
-		orderPrice = 0.0
-		tableNumber = 0.0
 		btn.SetSensitive(true)
 		newOrderWindow.Destroy()
 	})
 
 	newOrderWindow.ShowAll()
-	newOrderListWindow.ShowAll()
+	newOrderListWindow.ShowAll()*/
 }
 
-func freeTablesCreatePage() *gtk.Box {
+func orderedTablesCreatePage() *gtk.Box {
 	//creates tables tabpage
-	freeTablesVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
+	orderedTablesVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
 	if err != nil {
 		log.Fatal("Unable to create main vertical box: ", err)
 	}
 
-	createFreeTablesTreeView()
+	createOrderedTablesTreeView()
 	scrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
 	if err != nil {
 		log.Fatalf("Error on creating workers scrolled window")
 	}
 	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-	scrolledWindow.Add(freeTablesTreeView)
+	scrolledWindow.Add(orderedTablesTreeView)
 
-	orderCreateButton, err := gtk.ButtonNewWithLabel("Создать заказ")
+	orderEditButton, err := gtk.ButtonNewWithLabel("Закрыть/Изменить заказ")
 	if err != nil {
-		log.Fatal("Unable to create create order button: ", err)
+		log.Fatal("Unable to create edit order button: ", err)
 	}
-	orderCreateButton.Connect("clicked", orderCreateButtonClicked, nil)
+	orderEditButton.Connect("clicked", orderEditButtonClicked, nil)
 
-	freeTablesVbox.PackStart(scrolledWindow, true, true, 3)
-	freeTablesVbox.PackStart(orderCreateButton, false, true, 3)
+	orderedTablesVbox.PackStart(scrolledWindow, true, true, 3)
+	// orderedTablesVbox.PackStart(orderCreateButton, false, true, 3)
 
-	return freeTablesVbox
+	return orderedTablesVbox
 }

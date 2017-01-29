@@ -4,11 +4,20 @@ package main
 import (
 	"log"
 	"os"
+
 	"github.com/gotk3/gotk3/gtk"
 )
 
 var mainWindow *gtk.Window
 var goposServerIp, goposServerPassword, goposServerPort string
+
+func notebookPageChaged() {
+	freeTablesListStore.Clear()
+	getFreeTables()
+
+	orderedTablesListStore.Clear()
+	getOrderedTables()
+}
 
 func main() {
 	var err error
@@ -54,7 +63,13 @@ func main() {
 		log.Fatal("Error on creating new order page label: ", err)
 	}
 
+	orderedTablesPageLabel, err := gtk.LabelNew("Столики с заказами")
+	if err != nil {
+		log.Fatal("Error on creating new order page label: ", err)
+	}
+
 	notebook.AppendPage(freeTablesCreatePage(), freeTablesPageLabel)
+	notebook.AppendPage(orderedTablesCreatePage(), orderedTablesPageLabel)
 	mainWindow.Add(notebook)
 
 	getFreeTables()
@@ -64,6 +79,8 @@ func main() {
 
 	// Recursively show all widgets contained in this window.
 	mainWindow.ShowAll()
+
+	notebook.Connect("switch-page", notebookPageChaged)
 
 	// Begin executing the GTK main loop.  This blocks until
 	// gtk.MainQuit() is run.

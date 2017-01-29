@@ -30,6 +30,8 @@ const (
 	COLUMN_DISHES_PRICE
 )
 
+var newOrderWindow *gtk.Window
+
 var categoriesTreeView *gtk.TreeView
 var categoriesListStore *gtk.ListStore
 
@@ -234,12 +236,15 @@ func dishAddButtonClicked(btn *gtk.Button) {
 		log.Fatal("Error on getting value: ", err)
 	}
 	dishPrice := value.GetDouble()
+	orderPrice += dishPrice
+	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", orderPrice))
 	newOrderAddRow(dishId, dishName, dishPrice)
 }
 
 func newOrderCreateWindow() *gtk.Window {
 	//creates menu tabpage
-	newOrderWindow, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
+	var err error
+	newOrderWindow, err = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 	if err != nil {
 		log.Fatal("Unable to create window:", err)
 	}

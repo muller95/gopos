@@ -4,9 +4,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	_"github.com/go-sql-driver/mysql"
 	"log"
 	"net"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func handleCategoryGet(conn net.Conn) {
@@ -63,7 +64,7 @@ func handleCategoryAdd(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on getting workers ids: ", err)
 	}
 
-	for ;rows.Next(); id++ {
+	for ; rows.Next(); id++ {
 		var currId int
 		err := rows.Scan(&currId)
 		if err != nil {
@@ -95,7 +96,7 @@ func handleCategoryAdd(requestMap map[string]string, conn net.Conn) {
 func handleCategoryDelete(requestMap map[string]string, conn net.Conn) {
 	tx, err := dbConn.Begin()
 	if err != nil {
-		log.Fatalf("Error on begining category delete transaction: ", err)
+		log.Fatal("Error on begining category delete transaction: ", err)
 	}
 
 	_, err = tx.Exec(fmt.Sprintf("DELETE FROM categories WHERE id=%s;",
@@ -108,18 +109,18 @@ func handleCategoryDelete(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		err = tx.Rollback()
 		if err != nil {
-			log.Fatalf("Error on tollback category transaction: ", err)
+			log.Fatal("Error on rollback category transaction: ", err)
 		}
-		log.Fatalf("Error on deleting dishes in category: ", err)
+		log.Fatal("Error on deleting dishes in category: ", err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		err = tx.Rollback()
 		if err != nil {
-			log.Fatalf("Error on tollback category transaction: ", err)
+			log.Fatal("Error on rollback category transaction: ", err)
 		}
-		log.Fatalf("Error on commiting category transaction: ", err)
+		log.Fatal("Error on commiting category transaction: ", err)
 	}
 
 	responseMap := make(map[string]string)
@@ -129,6 +130,5 @@ func handleCategoryDelete(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on encode request map: ", err)
 	}
-
 
 }

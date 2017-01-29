@@ -4,62 +4,68 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_"github.com/go-sql-driver/mysql"
 	"log"
 	"net"
 	"os"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
 var dbConn *sql.DB
 
 func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
-	switch requestMap["group"]{
-		case "WORKER":
-			switch requestMap["action"] {
-				case "ADD":
-					handleWorkerAdd(requestMap, conn)
-				case "GET":
-					handleWorkerGet(conn)
-				case "DELETE":
-					handleWorkerDelete(requestMap, conn)
-			}
-		case "TABLE":
-			switch requestMap["action"] {
-				case "ADD":
-					handleTableAdd(requestMap, conn)
-				case "GET":
-					handleTableGet(conn)
-				case "DELETE":
-					handleTableDelete(requestMap, conn)
-			}
-		case "CATEGORY":
-			switch requestMap["action"] {
-				case "ADD":
-					handleCategoryAdd(requestMap, conn)
-				case "GET":
-					handleCategoryGet(conn)
-				case "DELETE":
-					handleCategoryDelete(requestMap, conn)
-			}
-		case "DISH":
-			switch requestMap["action"] {
-				case "ADD":
-					handleDishAdd(requestMap, conn)
-				case "GET":
-					handleDishGet(requestMap, conn)
-				case "DELETE":
-					handleDishDelete(requestMap, conn)
-			}
-		case "CARD":
-			switch requestMap["action"] {
-				case "ADD":
-					handleCardAdd(requestMap, conn)
-				case "GET":
-					handleCardGet(conn)
-				case "DELETE":
-					handleCardDelete(requestMap, conn)
-			}
+	switch requestMap["group"] {
+	case "WORKER":
+		switch requestMap["action"] {
+		case "ADD":
+			handleWorkerAdd(requestMap, conn)
+		case "GET":
+			handleWorkerGet(conn)
+		case "DELETE":
+			handleWorkerDelete(requestMap, conn)
+		}
+	case "TABLE":
+		switch requestMap["action"] {
+		case "ADD":
+			handleTableAdd(requestMap, conn)
+		case "GET":
+			handleTableGet(conn)
+		case "DELETE":
+			handleTableDelete(requestMap, conn)
+		}
+	case "CATEGORY":
+		switch requestMap["action"] {
+		case "ADD":
+			handleCategoryAdd(requestMap, conn)
+		case "GET":
+			handleCategoryGet(conn)
+		case "DELETE":
+			handleCategoryDelete(requestMap, conn)
+		}
+	case "DISH":
+		switch requestMap["action"] {
+		case "ADD":
+			handleDishAdd(requestMap, conn)
+		case "GET":
+			handleDishGet(requestMap, conn)
+		case "DELETE":
+			handleDishDelete(requestMap, conn)
+		}
+	case "CARD":
+		switch requestMap["action"] {
+		case "ADD":
+			handleCardAdd(requestMap, conn)
+		case "GET":
+			handleCardGet(conn)
+		case "DELETE":
+			handleCardDelete(requestMap, conn)
+		}
+	case "ORDER":
+		switch requestMap["action"] {
+		case "CREATE":
+			handleOrderCreate(requestMap, conn)
+		}
 	}
 }
 
@@ -70,7 +76,6 @@ func handleConnection(conn net.Conn) {
 	if err != nil {
 		log.Fatal("Error on decoding json: ", err)
 	}
-
 
 	if requestMap["password"] != goposServerPassword {
 		responseMap := make(map[string]string)
@@ -123,7 +128,7 @@ func main() {
 		log.Fatal("Error on opening database", err)
 	}
 
-	listener, err :=  net.Listen("tcp", ":" + goposServerPort)
+	listener, err := net.Listen("tcp", ":"+goposServerPort)
 	if err != nil {
 		log.Fatal("Cannot start listening port: ", err)
 	}

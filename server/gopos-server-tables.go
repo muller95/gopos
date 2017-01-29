@@ -4,9 +4,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	_"github.com/go-sql-driver/mysql"
 	"log"
 	"net"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func handleTableGet(conn net.Conn) {
@@ -55,7 +56,6 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 		return
 	}
 
-
 	_, err = dbConn.Exec(fmt.Sprintf("INSERT INTO tables VALUES(%s, -1)", requestMap["number"]))
 	if err != nil {
 		log.Fatal("Error on inserting new table: ", err)
@@ -65,7 +65,7 @@ func handleTableAdd(requestMap map[string]string, conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(responseMap)
 	if err != nil {
-		log.Fatal("Error on encode request map: ", err)
+		log.Fatal("Error on encode response map: ", err)
 	}
 }
 
@@ -81,6 +81,6 @@ func handleTableDelete(requestMap map[string]string, conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(responseMap)
 	if err != nil {
-		log.Fatal("Error on encode request map: ", err)
+		log.Fatal("Error on encode resoponse map: ", err)
 	}
 }

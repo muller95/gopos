@@ -1,13 +1,11 @@
 package main
 
 import (
-	//	"encoding/json"
-	//	"fmt"
-
+	"encoding/json"
 	"fmt"
 	"log"
-	//	"net"
-	//	"strconv"
+	"net"
+	"strings"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -15,6 +13,10 @@ import (
 
 var newOrderTreeView *gtk.TreeView
 var newOrderListStore *gtk.ListStore
+var newOrderPriceLabel *gtk.Label
+var newOrderListWindow *gtk.Window
+
+var orderPrice float64
 
 const (
 	COLUMN_NEW_ORDER_DISH_ID = iota
@@ -68,10 +70,18 @@ func dishNewOrderDeleteSelectedButtonClicked() {
 	if err != nil {
 		log.Fatal("Error on getting iter: ", err)
 	}
+	value, err := newOrderListStore.GetValue(iter, 2)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	orderPrice -= value.GetDouble()
+	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", orderPrice))
 	newOrderListStore.Remove(iter)
 }
 
 func newOrderConfirmButtonClicked() {
+	newOrderMap := make(map[int]int)
+
 	iter, isNotEmpty := newOrderListStore.GetIterFirst()
 	if !isNotEmpty {
 		return
@@ -83,20 +93,74 @@ func newOrderConfirmButtonClicked() {
 			log.Fatal("Error on getting value: ", err)
 		}
 		dishId := value.GetInt()
-		fmt.Println(dishId)
+		newOrderMap[dishId]++
 		if !newOrderListStore.IterNext(iter) {
 			break
 		}
 	}
+
+	orderString := ""
+	for id, count := range newOrderMap {
+		orderString += fmt.Sprintf(" %d:%d", id, count)
+	}
+	orderString = strings.Trim(orderString, " ")
+	fmt.Println(newOrderMap)
+	fmt.Println(orderString)
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "ORDER"
+	requestMap["action"] = "CREATE"
+	requestMap["password"] = goposServerPassword
+	requestMap["order_string"] = orderString
+	requestMap["table_number"] = fmt.Sprintf("%d", tableNumber)
+	requestMap["price"] = fmt.Sprintf("%f", orderPrice)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+
+	if responseMap["result"] != "OK" {
+		messageDialog := gtk.MessageDialogNew(mainWindow,
+			gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+			responseMap["error"])
+		messageDialog.Run()
+		messageDialog.Destroy()
+		conn.Close()
+		return
+	} else {
+		newOrderWindow.Destroy()
+		newOrderListWindow.Destroy()
+	}
 }
 
 func newOrderListCreateWindow() *gtk.Window {
-	newOrderListWindow, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
+	var err error
+	newOrderListWindow, err = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 	if err != nil {
 		log.Fatal("Unable to create window:", err)
 	}
 	newOrderListWindow.SetTitle("gopos-monitor-neworder-lsit")
 	newOrderListWindow.SetDefaultSize(800, 600)
+
+	newOrderPriceLabel, err = gtk.LabelNew("Цена: 0.0")
+	if err != nil {
+		log.Fatal("Error on creating price label")
+	}
 
 	newOrderVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
 	if err != nil {
@@ -124,6 +188,7 @@ func newOrderListCreateWindow() *gtk.Window {
 	newOrderConfirm.Connect("clicked", newOrderConfirmButtonClicked)
 
 	newOrderVbox.PackStart(scrolledWindow, true, true, 3)
+	newOrderVbox.PackStart(newOrderPriceLabel, false, false, 3)
 	newOrderVbox.PackStart(dishDeleteButton, false, true, 3)
 	newOrderVbox.PackStart(newOrderConfirm, false, true, 3)
 
