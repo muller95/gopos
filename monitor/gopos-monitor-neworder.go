@@ -20,9 +20,9 @@ const (
 )
 
 const (
-	COLUMN_NEW_ORDER_DISHES_ID = iota
-	COLUMN_NEW_ORDER_DISHES_NAME
-	COLUMN_NEW_ORDER_DISHES_PRICE
+	COLUMN_NEW_ORDER_DISH_ID = iota
+	COLUMN_NEW_ORDER_DISH_NAME
+	COLUMN_NEW_ORDER_DISH_PRICE
 )
 
 var newOrderWindow *gtk.Window
@@ -72,9 +72,9 @@ func createNewOrderDishesTreeView() {
 		log.Fatal("Unable to create newOrderDishes tree view: ", err)
 	}
 
-	newOrderDishesTreeView.AppendColumn(createColumn("ID", COLUMN_NEW_ORDER_DISHES_ID))
-	newOrderDishesTreeView.AppendColumn(createColumn("Название", COLUMN_NEW_ORDER_DISHES_NAME))
-	newOrderDishesTreeView.AppendColumn(createColumn("Цена", COLUMN_NEW_ORDER_DISHES_PRICE))
+	newOrderDishesTreeView.AppendColumn(createColumn("ID", COLUMN_NEW_ORDER_DISH_ID))
+	newOrderDishesTreeView.AppendColumn(createColumn("Название", COLUMN_NEW_ORDER_DISH_NAME))
+	newOrderDishesTreeView.AppendColumn(createColumn("Цена", COLUMN_NEW_ORDER_DISH_PRICE))
 
 	newOrderDishesListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING,
 		glib.TYPE_DOUBLE)
@@ -88,8 +88,8 @@ func createNewOrderDishesTreeView() {
 func newOrderDishAddRow(id int, name string, price float64) {
 	iter := newOrderDishesListStore.Append()
 
-	err := newOrderDishesListStore.Set(iter, []int{COLUMN_NEW_ORDER_DISHES_ID, COLUMN_NEW_ORDER_DISHES_NAME,
-		COLUMN_NEW_ORDER_DISHES_PRICE}, []interface{}{id, name, price})
+	err := newOrderDishesListStore.Set(iter, []int{COLUMN_NEW_ORDER_DISH_ID, COLUMN_NEW_ORDER_DISH_NAME,
+		COLUMN_NEW_ORDER_DISH_PRICE}, []interface{}{id, name, price})
 
 	if err != nil {
 		log.Fatal("Unable to add newOrderDish row: ", err)
@@ -232,8 +232,8 @@ func newOrderDishAddButtonClicked(btn *gtk.Button) {
 		log.Fatal("Error on getting value: ", err)
 	}
 	newOrderDishPrice := value.GetDouble()
-	orderPrice += newOrderDishPrice
-	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", orderPrice))
+	newOrderPrice += newOrderDishPrice
+	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", newOrderPrice))
 	newOrderAddRow(newOrderDishId, newOrderDishName, newOrderDishPrice)
 }
 

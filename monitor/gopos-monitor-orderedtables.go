@@ -19,6 +19,8 @@ const (
 var orderedTablesTreeView *gtk.TreeView
 var orderedTablesListStore *gtk.ListStore
 
+var orderedTableNumber int
+
 func createOrderedTablesTreeView() {
 	var err error
 	orderedTablesTreeView, err = gtk.TreeViewNew()
@@ -104,26 +106,27 @@ func orderEditButtonClicked(btn *gtk.Button) {
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	tableNumber = value.GetInt()
+	orderedTableNumber = value.GetInt()
 
 	btn.SetSensitive(false)
 
 	existingOrderWindow := existingOrderCreateWindow()
 	getExistingOrderCategories()
 
-	// newOrderListWindow := newOrderListCreateWindow()
+	existingOrderListWindow := existingOrderListCreateWindow()
+	getOrder()
 
 	existingOrderWindow.Connect("destroy", func(window *gtk.Window) {
-		// newOrderListWindow.Destroy()
+		existingOrderListWindow.Destroy()
 		btn.SetSensitive(true)
 	})
-	/*newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
+	existingOrderListWindow.Connect("destroy", func(window *gtk.Window) {
 		btn.SetSensitive(true)
-		newOrderWindow.Destroy()
-	})*/
+		existingOrderWindow.Destroy()
+	})
 
 	existingOrderWindow.ShowAll()
-	// newOrderListWindow.ShowAll()
+	existingOrderListWindow.ShowAll()
 }
 
 func orderedTablesCreatePage() *gtk.Box {

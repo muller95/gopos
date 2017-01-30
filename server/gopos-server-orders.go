@@ -7,6 +7,10 @@ import (
 	"net"
 	"sync"
 
+	"strings"
+
+	"strconv"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -86,6 +90,55 @@ func handleOrderCreate(requestMap map[string]string, conn net.Conn) {
 	mutex.Unlock()
 }
 
-/*func handleOrdersGet(requestMap map[string]string, conn net.Conn) {
-	_, err := dbConn.Query(fmt.Sprntf("SELECT orders ")
-}*/
+func handleOrdersGet(requestMap map[string]string, conn net.Conn) {
+	var orderId, totalDishes int64
+	var orderString string
+	var price, discount float64
+	var orderParts []string
+	var splitedOrderParts [][]string
+
+	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"])).Scan(&orderId)
+	dbConn.QueryRow(fmt.Sprintf("SELECT order_string, price, discount FROM orders "+
+		"WHERE id=%d", orderId)).Scan(&orderString, &price, &discount)
+
+	orderParts = strings.Split(orderString, " ")
+	splitedOrderParts = make([][]string, len(orderParts))
+	for i, part := range orderParts {
+		splitedOrderParts[i] = strings.Split(part, ":")
+		tmp, _ := strconv.ParseInt(splitedOrderParts[i][1], 0, 32)
+		totalDishes += tmp
+	}
+
+	encoder := json.NewEncoder(conn)
+	responseMap := make(map[string]string)
+	responseMap["total_dishes"] = fmt.Sprintf("%d", totalDishes)
+	err := encoder.Encode(responseMap)
+
+	for _, part := range splitedOrderParts {
+		var dishId int
+		var dishName string
+		var dishPrice float64
+		dbConn.QueryRow(fmt.Sprintf("SELECT id, nam	, price FROM dishes where id=%s", part[0])).
+			Scan(&dishId, &dishName, &dishPrice)
+
+		count, _ := strconv.ParseInt(part[1], 0, 32)
+		for j := int64(0); j < count; j++ {
+			responseMap = make(map[string]string)
+			responseMap["id"] = fmt.Sprintf("%d", dishId)
+			responseMap["name"] = dishName
+			responseMap["price"] = fmt.Sprintf("%f", dishPrice)
+			err := encoder.Encode(responseMap)
+			if err != nil {
+				log.Fatal("Error on encode resoponse map: ", err)
+			}
+		}
+	}
+
+	responseMap = make(map[string]string)
+	responseMap["price"] = fmt.Sprintf("%f", (1.0-discount)*price)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encode resoponse map: ", err)
+	}
+}

@@ -16,7 +16,7 @@ var newOrderListStore *gtk.ListStore
 var newOrderPriceLabel *gtk.Label
 var newOrderListWindow *gtk.Window
 
-var orderPrice float64
+var newOrderPrice float64
 
 const (
 	COLUMN_NEW_ORDER_LIST_DISH_ID = iota
@@ -74,8 +74,8 @@ func dishNewOrderDeleteSelectedButtonClicked() {
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	orderPrice -= value.GetDouble()
-	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", orderPrice))
+	newOrderPrice -= value.GetDouble()
+	newOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", newOrderPrice))
 	newOrderListStore.Remove(iter)
 }
 
@@ -119,8 +119,8 @@ func newOrderConfirmButtonClicked() {
 	requestMap["action"] = "CREATE"
 	requestMap["password"] = goposServerPassword
 	requestMap["order_string"] = orderString
-	requestMap["table_number"] = fmt.Sprintf("%d", tableNumber)
-	requestMap["price"] = fmt.Sprintf("%f", orderPrice)
+	requestMap["table_number"] = fmt.Sprintf("%d", freeTableNumber)
+	requestMap["price"] = fmt.Sprintf("%f", newOrderPrice)
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(requestMap)
 	if err != nil {

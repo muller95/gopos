@@ -65,6 +65,8 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 		switch requestMap["action"] {
 		case "CREATE":
 			handleOrderCreate(requestMap, conn)
+		case "GET":
+			handleOrdersGet(requestMap, conn)
 		}
 	}
 }

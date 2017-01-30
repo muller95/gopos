@@ -1,0 +1,246 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net"
+	"strconv"
+
+	"github.com/gotk3/gotk3/glib"
+	"github.com/gotk3/gotk3/gtk"
+)
+
+var existingOrderTreeView *gtk.TreeView
+var existingOrderListStore *gtk.ListStore
+var existingOrderPriceLabel *gtk.Label
+var existingOrderListWindow *gtk.Window
+
+var existingOrderPrice float64
+
+const (
+	COLUMN_EXISTING_ORDER_LIST_DISH_ID = iota
+	COLUMN_EXISTING_ORDER_LIST_DISH_NAME
+	COLUMN_EXISTING_ORDER_LIST_DISH_PRICE
+)
+
+func createExistingOrderTreeView() {
+	var err error
+	existingOrderTreeView, err = gtk.TreeViewNew()
+
+	if err != nil {
+		log.Fatal("Unable to create tables tree view: ", err)
+	}
+
+	existingOrderTreeView.AppendColumn(createColumn("ID", COLUMN_EXISTING_ORDER_LIST_DISH_ID))
+	existingOrderTreeView.AppendColumn(createColumn("Название блюда", COLUMN_EXISTING_ORDER_LIST_DISH_NAME))
+	existingOrderTreeView.AppendColumn(createColumn("Цена", COLUMN_EXISTING_ORDER_LIST_DISH_PRICE))
+
+	existingOrderListStore, err = gtk.ListStoreNew(glib.TYPE_INT, glib.TYPE_STRING, glib.TYPE_DOUBLE)
+	if err != nil {
+		log.Fatal("Unable to create tables list store: ", err)
+	}
+
+	existingOrderTreeView.SetModel(existingOrderListStore)
+}
+
+func existingOrderAddRow(id int, name string, price float64) {
+	iter := existingOrderListStore.Append()
+	fmt.Println("here")
+	err := existingOrderListStore.Set(iter, []int{COLUMN_EXISTING_ORDER_LIST_DISH_ID, COLUMN_EXISTING_ORDER_LIST_DISH_NAME,
+		COLUMN_EXISTING_ORDER_LIST_DISH_PRICE}, []interface{}{id, name, price})
+
+	if err != nil {
+		log.Fatal("Unable to add tables row: ", err)
+	}
+}
+
+func dishExistingOrderDeleteSelectedButtonClicked() {
+	selection, err := existingOrderTreeView.GetSelection()
+	if err != nil {
+		log.Fatal("Error on getting existing order selection")
+	}
+
+	rows := selection.GetSelectedRows(existingOrderListStore)
+	if rows == nil {
+		return
+	}
+	path := rows.Data().(*gtk.TreePath)
+	iter, err := existingOrderListStore.GetIter(path)
+	if err != nil {
+		log.Fatal("Error on getting iter: ", err)
+	}
+	value, err := existingOrderListStore.GetValue(iter, 2)
+	if err != nil {
+		log.Fatal("Error on getting value: ", err)
+	}
+	existingOrderPrice -= value.GetDouble()
+	existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", existingOrderPrice))
+	existingOrderListStore.Remove(iter)
+}
+
+func getOrder() {
+	var responseMap map[string]string
+
+	existingOrderListStore.Clear()
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "ORDER"
+	requestMap["action"] = "GET"
+	requestMap["password"] = goposServerPassword
+	requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap = make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+	totalDishes, _ := strconv.Atoi(responseMap["total_dishes"])
+	for i := 0; i < totalDishes; i++ {
+		responseMap = make(map[string]string)
+		err = decoder.Decode(&responseMap)
+		fmt.Println(responseMap)
+		if err != nil {
+			log.Fatal("Error on decoding response: ", err)
+		}
+
+		id, _ := strconv.Atoi(responseMap["id"])
+		price, _ := strconv.ParseFloat(responseMap["price"], 64)
+		existingOrderAddRow(id, responseMap["name"], price)
+	}
+
+	responseMap = make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+	existingOrderPriceLabel.SetText("Цена: " + responseMap["price"])
+}
+
+func existingOrderCloseButtonClicked() {
+	/*	existingOrderMap := make(map[int]int)
+
+		requestMap := make(map[string]string)
+		requestMap["group"] = "ORDER"
+		requestMap["action"] = "CLOSE"
+		requestMap["password"] = goposServerPassword
+		requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
+		encoder := json.NewEncoder(conn)
+		err = encoder.Encode(requestMap)
+		if err != nil {
+			log.Fatal("Error on encode request map: ", requestMap)
+		}
+
+		decoder := json.NewDecoder(conn)
+		responseMap := make(map[string]string)
+		err = decoder.Decode(&responseMap)
+		if err != nil {
+			log.Fatal("Error on decoding response: ", err)
+		}
+
+		if responseMap["result"] != "OK" {
+			messageDialog := gtk.MessageDialogNew(mainWindow,
+				gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+				responseMap["error"])
+			messageDialog.Run()
+			messageDialog.Destroy()
+			conn.Close()
+			return
+		} else {
+			existingOrderWindow.Destroy()
+			existingOrderListWindow.Destroy()
+		}*/
+}
+
+func existingOrderListCreateWindow() *gtk.Window {
+	var err error
+	existingOrderListWindow, err = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
+	if err != nil {
+		log.Fatal("Unable to create window:", err)
+	}
+	existingOrderListWindow.SetTitle("gopos-monitor-existingorder-lsit")
+	existingOrderListWindow.SetDefaultSize(800, 600)
+
+	existingOrderPriceLabel, err = gtk.LabelNew("")
+	if err != nil {
+		log.Fatal("Error on creating price label")
+	}
+
+	existingOrderVbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 10)
+	if err != nil {
+		log.Fatal("Unable to create existing order vertical box: ", err)
+	}
+
+	createExistingOrderTreeView()
+	scrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
+	if err != nil {
+		log.Fatalf("Error on creating workers scrolled window")
+	}
+	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	scrolledWindow.Add(existingOrderTreeView)
+
+	cardFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
+	if err != nil {
+		log.Fatal("Unable to create cards form horizontal box: ", err)
+	}
+
+	cardNumberLabel, err := gtk.LabelNew("Номер карты:")
+	if err != nil {
+		log.Fatal("Unable to create label:", err)
+	}
+
+	cardNumberEntry, err := gtk.EntryNew()
+	if err != nil {
+		log.Fatal("Unable to create entry: ", err)
+	}
+
+	discountAddButton, err := gtk.ButtonNewWithLabel("Добавить скидку")
+	if err != nil {
+		log.Fatal("Unable to create add button: ", err)
+	}
+
+	discountDeleteButton, err := gtk.ButtonNewWithLabel("Удалить скидку")
+	if err != nil {
+		log.Fatal("Unable to create add button: ", err)
+	}
+
+	cardFormHbox.PackStart(cardNumberLabel, false, false, 3)
+	cardFormHbox.PackStart(cardNumberEntry, true, true, 3)
+	cardFormHbox.PackStart(discountAddButton, true, true, 3)
+	cardFormHbox.PackStart(discountDeleteButton, true, true, 3)
+
+	dishDeleteButton, err := gtk.ButtonNewWithLabel("Удалить из заказа")
+	if err != nil {
+		log.Fatal("Unable to create delete button: ", err)
+	}
+	//	dishDeleteButton.Connect("clicked", dishExistingOrderDeleteSelectedButtonClicked, nil)
+
+	existingOrderClose, err := gtk.ButtonNewWithLabel("Закрыть заказ")
+	if err != nil {
+		log.Fatal("Unable to create comfirm button: ", err)
+	}
+	//existingOrderClose.Connect("clicked", existingOrderCloseButtonClicked)
+
+	existingOrderVbox.PackStart(scrolledWindow, true, true, 3)
+	existingOrderVbox.PackStart(existingOrderPriceLabel, false, false, 3)
+	existingOrderVbox.PackStart(cardFormHbox, false, true, 3)
+	existingOrderVbox.PackStart(dishDeleteButton, false, true, 3)
+	existingOrderVbox.PackStart(existingOrderClose, false, true, 3)
+
+	existingOrderListWindow.Add(existingOrderVbox)
+
+	return existingOrderListWindow
+}

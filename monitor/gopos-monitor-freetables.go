@@ -15,7 +15,7 @@ import (
 var freeTablesTreeView *gtk.TreeView
 var freeTablesListStore *gtk.ListStore
 
-var tableNumber int
+var freeTableNumber int
 
 const (
 	COLUMN_FREE_TABLES_NUMBER = iota
@@ -106,7 +106,7 @@ func orderCreateButtonClicked(btn *gtk.Button) {
 	if err != nil {
 		log.Fatal("Error on getting value: ", err)
 	}
-	tableNumber = value.GetInt()
+	freeTableNumber = value.GetInt()
 
 	btn.SetSensitive(false)
 
@@ -116,8 +116,8 @@ func orderCreateButtonClicked(btn *gtk.Button) {
 	newOrderListWindow := newOrderListCreateWindow()
 
 	newOrderWindow.Connect("destroy", func(window *gtk.Window) {
-		orderPrice = 0.0
-		tableNumber = 0.0
+		newOrderPrice = 0.0
+		freeTableNumber = 0.0
 		freeTablesListStore.Clear()
 		getFreeTables()
 		orderedTablesListStore.Clear()
@@ -126,8 +126,8 @@ func orderCreateButtonClicked(btn *gtk.Button) {
 		btn.SetSensitive(true)
 	})
 	newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
-		orderPrice = 0.0
-		tableNumber = 0.0
+		newOrderPrice = 0.0
+		freeTableNumber = 0.0
 		freeTablesListStore.Clear()
 		getFreeTables()
 		orderedTablesListStore.Clear()
