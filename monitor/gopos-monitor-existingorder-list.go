@@ -7,6 +7,8 @@ import (
 	"net"
 	"strconv"
 
+	"strings"
+
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -130,39 +132,134 @@ func getOrder() {
 	existingOrderPriceLabel.SetText("Цена: " + responseMap["price"])
 }
 
-func existingOrderCloseButtonClicked() {
-	/*	existingOrderMap := make(map[int]int)
+func existingOrderCloseButtonClicked(btn *gtk.Button, passwordEntry *gtk.Entry) {
+	password, err := passwordEntry.GetText()
+	if err != nil {
+		log.Fatal("Error on getting password")
+	}
 
-		requestMap := make(map[string]string)
-		requestMap["group"] = "ORDER"
-		requestMap["action"] = "CLOSE"
-		requestMap["password"] = goposServerPassword
-		requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
-		encoder := json.NewEncoder(conn)
-		err = encoder.Encode(requestMap)
-		if err != nil {
-			log.Fatal("Error on encode request map: ", requestMap)
-		}
+	if password != goposServerPassword {
+		messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING,
+			gtk.BUTTONS_OK, "Неверный пароль.")
+		messageDialog.Run()
+		messageDialog.Destroy()
+		return
+	}
 
-		decoder := json.NewDecoder(conn)
-		responseMap := make(map[string]string)
-		err = decoder.Decode(&responseMap)
-		if err != nil {
-			log.Fatal("Error on decoding response: ", err)
-		}
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
 
-		if responseMap["result"] != "OK" {
-			messageDialog := gtk.MessageDialogNew(mainWindow,
-				gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
-				responseMap["error"])
-			messageDialog.Run()
-			messageDialog.Destroy()
-			conn.Close()
-			return
-		} else {
-			existingOrderWindow.Destroy()
-			existingOrderListWindow.Destroy()
-		}*/
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "ORDER"
+	requestMap["action"] = "CLOSE"
+	requestMap["password"] = goposServerPassword
+	requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+
+	if responseMap["result"] == "OK" {
+		existingOrderWindow.Destroy()
+		existingOrderListWindow.Destroy()
+	}
+}
+
+func discountAddButtonClicked(btn *gtk.Button, cardNumberEntry *gtk.Entry) {
+	cardNumber, err := cardNumberEntry.GetText()
+	if err != nil {
+		log.Fatal("Unable to get card number entry text: ", err)
+	}
+	cardNumber = strings.Trim(cardNumber, " ")
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "ORDER"
+	requestMap["action"] = "ADD DISCOUNT"
+	requestMap["password"] = goposServerPassword
+	requestMap["card_number"] = cardNumber
+	requestMap["table_namber"] = fmt.Sprintf("%d", orderedTableNumber)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+
+	if responseMap["result"] != "OK" {
+		messageDialog := gtk.MessageDialogNew(mainWindow,
+			gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+			responseMap["error"])
+		messageDialog.Run()
+		messageDialog.Destroy()
+		conn.Close()
+		return
+	} else {
+		getOrder()
+	}
+}
+
+func discountDeleteButtonClicked() {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "ORDER"
+	requestMap["action"] = "DELETE DISCOUNT"
+	requestMap["password"] = goposServerPassword
+	requestMap["table_namber"] = fmt.Sprintf("%d", orderedTableNumber)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+
+	if responseMap["result"] != "OK" {
+		messageDialog := gtk.MessageDialogNew(mainWindow,
+			gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+			responseMap["error"])
+		messageDialog.Run()
+		messageDialog.Destroy()
+		conn.Close()
+		return
+	} else {
+		getOrder()
+	}
 }
 
 func existingOrderListCreateWindow() *gtk.Window {
@@ -192,10 +289,29 @@ func existingOrderListCreateWindow() *gtk.Window {
 	scrolledWindow.SetPolicy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 	scrolledWindow.Add(existingOrderTreeView)
 
+	passwordFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
+	if err != nil {
+		log.Fatal("Unable to create password form horizontal box: ", err)
+	}
+
+	passwordLabel, err := gtk.LabelNew("Пароль:")
+	if err != nil {
+		log.Fatal("Unable to create label:", err)
+	}
+
+	passwordEntry, err := gtk.EntryNew()
+	if err != nil {
+		log.Fatal("Unable to create entry: ", err)
+	}
+	passwordEntry.SetVisibility(false)
+
 	cardFormHbox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 10)
 	if err != nil {
 		log.Fatal("Unable to create cards form horizontal box: ", err)
 	}
+
+	passwordFormHbox.PackStart(passwordLabel, false, false, 3)
+	passwordFormHbox.PackStart(passwordEntry, true, true, 3)
 
 	cardNumberLabel, err := gtk.LabelNew("Номер карты:")
 	if err != nil {
@@ -211,11 +327,13 @@ func existingOrderListCreateWindow() *gtk.Window {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
+	discountAddButton.Connect("clicked", discountAddButtonClicked, cardNumberEntry)
 
 	discountDeleteButton, err := gtk.ButtonNewWithLabel("Удалить скидку")
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
+	discountDeleteButton.Connect("clicked", discountDeleteButtonClicked)
 
 	cardFormHbox.PackStart(cardNumberLabel, false, false, 3)
 	cardFormHbox.PackStart(cardNumberEntry, true, true, 3)
@@ -232,10 +350,11 @@ func existingOrderListCreateWindow() *gtk.Window {
 	if err != nil {
 		log.Fatal("Unable to create comfirm button: ", err)
 	}
-	//existingOrderClose.Connect("clicked", existingOrderCloseButtonClicked)
+	existingOrderClose.Connect("clicked", existingOrderCloseButtonClicked, passwordEntry)
 
 	existingOrderVbox.PackStart(scrolledWindow, true, true, 3)
 	existingOrderVbox.PackStart(existingOrderPriceLabel, false, false, 3)
+	existingOrderVbox.PackStart(passwordFormHbox, false, true, 3)
 	existingOrderVbox.PackStart(cardFormHbox, false, true, 3)
 	existingOrderVbox.PackStart(dishDeleteButton, false, true, 3)
 	existingOrderVbox.PackStart(existingOrderClose, false, true, 3)

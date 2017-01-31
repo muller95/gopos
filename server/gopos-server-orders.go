@@ -119,7 +119,7 @@ func handleOrdersGet(requestMap map[string]string, conn net.Conn) {
 		var dishId int
 		var dishName string
 		var dishPrice float64
-		dbConn.QueryRow(fmt.Sprintf("SELECT id, nam	, price FROM dishes where id=%s", part[0])).
+		dbConn.QueryRow(fmt.Sprintf("SELECT id, name, price FROM dishes where id=%s", part[0])).
 			Scan(&dishId, &dishName, &dishPrice)
 
 		count, _ := strconv.ParseInt(part[1], 0, 32)
@@ -140,5 +140,84 @@ func handleOrdersGet(requestMap map[string]string, conn net.Conn) {
 	err = encoder.Encode(responseMap)
 	if err != nil {
 		log.Fatal("Error on encode resoponse map: ", err)
+	}
+}
+
+func handleAddDiscount(requestMap map[string]string, conn net.Conn) {
+	var orderId int
+	var discount float64
+
+	dbConn.QueryRow("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"]).Scan(&orderId)
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT discount FROM cards where number=%s",
+		requestMap["card_number"]))
+	if err != nil {
+		log.Fatal("Error on getting card numbers")
+	}
+
+	responseMap := make(map[string]string)
+
+	if !rows.Next() {
+		responseMap["result"] = "ERR"
+		responseMap["error"] = "Нет карты с таким номером"
+		encoder := json.NewEncoder(conn)
+		err := encoder.Encode(responseMap)
+		if err != nil {
+			log.Fatal("Error on encoding response json: ", err)
+		}
+
+		return
+	}
+
+	rows.Scan(&discount)
+
+	_, err = dbConn.Exec(fmt.Sprintf("UPDATE orders SET discount=%f WHERE id=%d",
+		discount, orderId))
+	if err != nil {
+		log.Fatal("Error on setting discount")
+	}
+
+	responseMap["result"] = "OK"
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encoding response json: ", err)
+	}
+
+}
+
+func handleDeleteDiscount(requestMap map[string]string, conn net.Conn) {
+	var orderId int
+
+	dbConn.QueryRow("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"]).Scan(&orderId)
+
+	_, err := dbConn.Exec(fmt.Sprintf("UPDATE orders SET discount=0.0 WHERE id=%d", orderId))
+	if err != nil {
+		log.Fatal("Error on setting discount")
+	}
+
+	responseMap := make(map[string]string)
+	responseMap["result"] = "OK"
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encoding response json: ", err)
+	}
+}
+
+func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
+	_, err := dbConn.Exec(fmt.Sprintf("UPDATE tables SET current_order=-1 WHERE number=%s",
+		requestMap["table_number"]))
+	if err != nil {
+		log.Fatal("Error on setting discount")
+	}
+
+	responseMap := make(map[string]string)
+	responseMap["result"] = "OK"
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encoding response json: ", err)
 	}
 }

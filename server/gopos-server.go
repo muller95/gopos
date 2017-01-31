@@ -67,6 +67,12 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 			handleOrderCreate(requestMap, conn)
 		case "GET":
 			handleOrdersGet(requestMap, conn)
+		case "ADD DISCOUNT":
+			handleAddDiscount(requestMap, conn)
+		case "DELETE DISCOUNT":
+			handleDeleteDiscount(requestMap, conn)
+		case "CLOSE":
+			handleCloseOrder(requestMap, conn)
 		}
 	}
 }

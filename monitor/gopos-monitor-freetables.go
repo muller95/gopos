@@ -127,7 +127,7 @@ func orderCreateButtonClicked(btn *gtk.Button) {
 	})
 	newOrderListWindow.Connect("destroy", func(window *gtk.Window) {
 		newOrderPrice = 0.0
-		freeTableNumber = 0.0
+		freeTableNumber = 0
 		freeTablesListStore.Clear()
 		getFreeTables()
 		orderedTablesListStore.Clear()

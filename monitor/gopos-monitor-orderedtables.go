@@ -117,10 +117,22 @@ func orderEditButtonClicked(btn *gtk.Button) {
 	getOrder()
 
 	existingOrderWindow.Connect("destroy", func(window *gtk.Window) {
+		existingOrderPrice = 0.0
+		orderedTableNumber = 0
+		freeTablesListStore.Clear()
+		getFreeTables()
+		orderedTablesListStore.Clear()
+		getOrderedTables()
 		existingOrderListWindow.Destroy()
 		btn.SetSensitive(true)
 	})
 	existingOrderListWindow.Connect("destroy", func(window *gtk.Window) {
+		existingOrderPrice = 0.0
+		orderedTableNumber = 0
+		freeTablesListStore.Clear()
+		getFreeTables()
+		orderedTablesListStore.Clear()
+		getOrderedTables()
 		btn.SetSensitive(true)
 		existingOrderWindow.Destroy()
 	})
