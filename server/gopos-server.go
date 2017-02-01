@@ -73,6 +73,8 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 			handleDeleteDiscount(requestMap, conn)
 		case "CLOSE":
 			handleCloseOrder(requestMap, conn)
+		case "UPDATE":
+			handleOrderUpdate(requestMap, conn)
 		}
 	}
 }
@@ -129,7 +131,7 @@ func main() {
 		goposSQLPassword))
 	_, err = dbConn.Exec("SET CHARSET utf8")
 	if err != nil {
-		log.Fatalf("Error on setting charset: ", err)
+		log.Fatal("Error on setting charset: ", err)
 	}
 
 	if err != nil {

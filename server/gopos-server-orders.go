@@ -221,3 +221,28 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on encoding response json: ", err)
 	}
 }
+
+func handleOrderUpdate(requestMap map[string]string, conn net.Conn) {
+	var orderId int
+
+	mutex.Lock()
+
+	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"])).Scan(&orderId)
+
+	_, err := dbConn.Exec(fmt.Sprintf("UPDATE orders SET order_string='%s' WHERE id=%d",
+		requestMap["order_string"], orderId))
+	if err != nil {
+		log.Fatal("Error on updating order")
+	}
+
+	responseMap := make(map[string]string)
+	responseMap["result"] = fmt.Sprintf("OK")
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(responseMap)
+	if err != nil {
+		log.Fatal("Error on encode resoponse map: ", err)
+	}
+
+	mutex.Unlock()
+}

@@ -188,7 +188,7 @@ func existingOrderCategoriesSelectionChanged(selection *gtk.TreeSelection) {
 	}
 }
 
-/*func existingOrderDishAddButtonClicked(btn *gtk.Button) {
+func existingOrderDishAddButtonClicked(btn *gtk.Button) {
 	errMessage := ""
 	selection, err := existingOrderDishesTreeView.GetSelection()
 	if err != nil {
@@ -233,10 +233,10 @@ func existingOrderCategoriesSelectionChanged(selection *gtk.TreeSelection) {
 		log.Fatal("Error on getting value: ", err)
 	}
 	existingOrderDishPrice := value.GetDouble()
-	orderPrice += existingOrderDishPrice
-	existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", orderPrice))
+	existingOrderPrice += existingOrderDishPrice
+	existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", existingOrderPrice))
 	existingOrderAddRow(existingOrderDishId, existingOrderDishName, existingOrderDishPrice)
-}*/
+}
 
 func existingOrderCreateWindow() *gtk.Window {
 	//creates menu tabpage
@@ -313,7 +313,7 @@ func existingOrderCreateWindow() *gtk.Window {
 	if err != nil {
 		log.Fatal("Unable to create add button: ", err)
 	}
-	// existingOrderDishAddButton.Connect("clicked", existingOrderDishAddButtonClicked, nil)
+	existingOrderDishAddButton.Connect("clicked", existingOrderDishAddButtonClicked, nil)
 
 	existingOrderVbox.PackStart(menuHbox, true, true, 3)
 	existingOrderVbox.PackStart(existingOrderDishAddButton, false, true, 3)

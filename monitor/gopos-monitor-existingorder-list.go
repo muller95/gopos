@@ -57,7 +57,20 @@ func existingOrderAddRow(id int, name string, price float64) {
 	}
 }
 
-func dishExistingOrderDeleteSelectedButtonClicked() {
+func dishExistingOrderDeleteSelectedButtonClicked(btn *gtk.Button, passwordEntry *gtk.Entry) {
+	password, err := passwordEntry.GetText()
+	if err != nil {
+		log.Fatal("Error on getting password")
+	}
+
+	if password != goposServerPassword {
+		messageDialog := gtk.MessageDialogNew(mainWindow, gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING,
+			gtk.BUTTONS_OK, "Неверный пароль.")
+		messageDialog.Run()
+		messageDialog.Destroy()
+		return
+	}
+
 	selection, err := existingOrderTreeView.GetSelection()
 	if err != nil {
 		log.Fatal("Error on getting existing order selection")
@@ -262,6 +275,75 @@ func discountDeleteButtonClicked() {
 	}
 }
 
+func existingOrderUpdateButtonClicked() {
+	existingOrderMap := make(map[int]int)
+
+	iter, isNotEmpty := existingOrderListStore.GetIterFirst()
+	if !isNotEmpty {
+		return
+	}
+
+	for {
+		value, err := existingOrderListStore.GetValue(iter, COLUMN_NEW_ORDER_LIST_DISH_ID)
+		if err != nil {
+			log.Fatal("Error on getting value: ", err)
+		}
+		dishId := value.GetInt()
+		existingOrderMap[dishId]++
+		if !existingOrderListStore.IterNext(iter) {
+			break
+		}
+	}
+
+	orderString := ""
+	for id, count := range existingOrderMap {
+		orderString += fmt.Sprintf(" %d:%d", id, count)
+	}
+	orderString = strings.Trim(orderString, " ")
+	fmt.Println(existingOrderMap)
+	fmt.Println(orderString)
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposServerIp,
+		goposServerPort))
+
+	if err != nil {
+		log.Fatal("Unable to connect to server")
+	}
+
+	requestMap := make(map[string]string)
+	requestMap["group"] = "ORDER"
+	requestMap["action"] = "UPDATE"
+	requestMap["password"] = goposServerPassword
+	requestMap["order_string"] = orderString
+	requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
+	requestMap["price"] = fmt.Sprintf("%f", existingOrderPrice)
+	encoder := json.NewEncoder(conn)
+	err = encoder.Encode(requestMap)
+	if err != nil {
+		log.Fatal("Error on encode request map: ", requestMap)
+	}
+
+	decoder := json.NewDecoder(conn)
+	responseMap := make(map[string]string)
+	err = decoder.Decode(&responseMap)
+	if err != nil {
+		log.Fatal("Error on decoding response: ", err)
+	}
+
+	if responseMap["result"] != "OK" {
+		messageDialog := gtk.MessageDialogNew(mainWindow,
+			gtk.DIALOG_MODAL, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK,
+			responseMap["error"])
+		messageDialog.Run()
+		messageDialog.Destroy()
+		conn.Close()
+		return
+	} else {
+		existingOrderWindow.Destroy()
+		existingOrderListWindow.Destroy()
+	}
+}
+
 func existingOrderListCreateWindow() *gtk.Window {
 	var err error
 	existingOrderListWindow, err = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
@@ -344,11 +426,18 @@ func existingOrderListCreateWindow() *gtk.Window {
 	if err != nil {
 		log.Fatal("Unable to create delete button: ", err)
 	}
-	//	dishDeleteButton.Connect("clicked", dishExistingOrderDeleteSelectedButtonClicked, nil)
+	dishDeleteButton.Connect("clicked", dishExistingOrderDeleteSelectedButtonClicked,
+		passwordEntry)
+
+	existingOrderUpdate, err := gtk.ButtonNewWithLabel("Обновить заказ")
+	if err != nil {
+		log.Fatal("Unable to create update button: ", err)
+	}
+	existingOrderUpdate.Connect("clicked", existingOrderUpdateButtonClicked)
 
 	existingOrderClose, err := gtk.ButtonNewWithLabel("Закрыть заказ")
 	if err != nil {
-		log.Fatal("Unable to create comfirm button: ", err)
+		log.Fatal("Unable to create close button: ", err)
 	}
 	existingOrderClose.Connect("clicked", existingOrderCloseButtonClicked, passwordEntry)
 
@@ -357,6 +446,7 @@ func existingOrderListCreateWindow() *gtk.Window {
 	existingOrderVbox.PackStart(passwordFormHbox, false, true, 3)
 	existingOrderVbox.PackStart(cardFormHbox, false, true, 3)
 	existingOrderVbox.PackStart(dishDeleteButton, false, true, 3)
+	existingOrderVbox.PackStart(existingOrderUpdate, false, true, 3)
 	existingOrderVbox.PackStart(existingOrderClose, false, true, 3)
 
 	existingOrderListWindow.Add(existingOrderVbox)
