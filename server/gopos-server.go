@@ -12,6 +12,7 @@ import (
 )
 
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
+var goposPrintserverIp, goposPrintserverPort string
 var dbConn *sql.DB
 
 func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
@@ -66,7 +67,7 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 		case "CREATE":
 			handleOrderCreate(requestMap, conn)
 		case "GET":
-			handleOrdersGet(requestMap, conn)
+			handleOrderGet(requestMap, conn)
 		case "ADD DISCOUNT":
 			handleAddDiscount(requestMap, conn)
 		case "DELETE DISCOUNT":
@@ -125,6 +126,16 @@ func main() {
 	goposSQLPassword = os.Getenv("GOPOS_SQL_PASSWORD")
 	if goposSQLPassword == "" {
 		log.Fatal("GOPOS_SQL_PASSWORD is not set")
+	}
+
+	goposPrintserverIp = os.Getenv("GOPOS_PRINTSERVER_IP")
+	if goposServerPassword == "" {
+		log.Fatal("GOPOS_SERVER_PASSWORD is not set")
+	}
+
+	goposPrintserverPort = os.Getenv("GOPOS_PRINTSERVER_PORT")
+	if goposServerPort == "" {
+		log.Fatal("GOPOS_SERVER_PORT is not set")
 	}
 
 	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos?parseTime=true", goposSQLUser,

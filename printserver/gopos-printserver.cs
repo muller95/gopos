@@ -76,7 +76,7 @@ namespace GoposPrintserver {
             while (true) {
                 TcpClient tcpClient;
 
-                
+                tcpClient = tcpListener.AcceptTcpClient();
             }
         }
     }    

@@ -209,7 +209,7 @@ func discountAddButtonClicked(btn *gtk.Button, cardNumberEntry *gtk.Entry) {
 	requestMap["action"] = "ADD DISCOUNT"
 	requestMap["password"] = goposServerPassword
 	requestMap["card_number"] = cardNumber
-	requestMap["table_namber"] = fmt.Sprintf("%d", orderedTableNumber)
+	requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(requestMap)
 	if err != nil {
@@ -248,7 +248,7 @@ func discountDeleteButtonClicked() {
 	requestMap["group"] = "ORDER"
 	requestMap["action"] = "DELETE DISCOUNT"
 	requestMap["password"] = goposServerPassword
-	requestMap["table_namber"] = fmt.Sprintf("%d", orderedTableNumber)
+	requestMap["table_number"] = fmt.Sprintf("%d", orderedTableNumber)
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(requestMap)
 	if err != nil {

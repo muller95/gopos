@@ -4,9 +4,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	_"github.com/go-sql-driver/mysql"
 	"log"
 	"net"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func handleCardGet(conn net.Conn) {
@@ -29,7 +30,7 @@ func handleCardGet(conn net.Conn) {
 		responseMap := make(map[string]string)
 		responseMap["number"] = cardNumber
 		responseMap["holder_name"] = holderName
-		responseMap["discnount"] = fmt.Sprintf("%f", discount)
+		responseMap["discount"] = fmt.Sprintf("%f", discount)
 		err = encoder.Encode(responseMap)
 		if err != nil {
 			log.Fatal("Error on encode request map: ", err)

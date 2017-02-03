@@ -90,7 +90,7 @@ func handleOrderCreate(requestMap map[string]string, conn net.Conn) {
 	mutex.Unlock()
 }
 
-func handleOrdersGet(requestMap map[string]string, conn net.Conn) {
+func handleOrderGet(requestMap map[string]string, conn net.Conn) {
 	var orderId, totalDishes int64
 	var orderString string
 	var price, discount float64
@@ -147,9 +147,9 @@ func handleAddDiscount(requestMap map[string]string, conn net.Conn) {
 	var orderId int
 	var discount float64
 
-	dbConn.QueryRow("SELECT current_order FROM tables WHERE number=%s",
-		requestMap["table_number"]).Scan(&orderId)
-	rows, err := dbConn.Query(fmt.Sprintf("SELECT discount FROM cards where number=%s",
+	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"])).Scan(&orderId)
+	rows, err := dbConn.Query(fmt.Sprintf("SELECT discount FROM cards where number='%s'",
 		requestMap["card_number"]))
 	if err != nil {
 		log.Fatal("Error on getting card numbers")
@@ -170,7 +170,6 @@ func handleAddDiscount(requestMap map[string]string, conn net.Conn) {
 	}
 
 	rows.Scan(&discount)
-
 	_, err = dbConn.Exec(fmt.Sprintf("UPDATE orders SET discount=%f WHERE id=%d",
 		discount, orderId))
 	if err != nil {
@@ -189,12 +188,12 @@ func handleAddDiscount(requestMap map[string]string, conn net.Conn) {
 func handleDeleteDiscount(requestMap map[string]string, conn net.Conn) {
 	var orderId int
 
-	dbConn.QueryRow("SELECT current_order FROM tables WHERE number=%s",
-		requestMap["table_number"]).Scan(&orderId)
+	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"])).Scan(&orderId)
 
 	_, err := dbConn.Exec(fmt.Sprintf("UPDATE orders SET discount=0.0 WHERE id=%d", orderId))
 	if err != nil {
-		log.Fatal("Error on setting discount")
+		log.Fatal("Error on deleting discount")
 	}
 
 	responseMap := make(map[string]string)
@@ -207,7 +206,56 @@ func handleDeleteDiscount(requestMap map[string]string, conn net.Conn) {
 }
 
 func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
-	_, err := dbConn.Exec(fmt.Sprintf("UPDATE tables SET current_order=-1 WHERE number=%s",
+	var orderId int64
+	var orderString string
+	var price, discount float64
+	var orderParts []string
+	var splitedOrderParts [][]string
+
+	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
+		requestMap["table_number"])).Scan(&orderId)
+	dbConn.QueryRow(fmt.Sprintf("SELECT order_string, price, discount FROM orders "+
+		"WHERE id=%d", orderId)).Scan(&orderString, &price, &discount)
+
+	orderParts = strings.Split(orderString, " ")
+	splitedOrderParts = make([][]string, len(orderParts))
+	for i, part := range orderParts {
+		splitedOrderParts[i] = strings.Split(part, ":")
+	}
+
+	packageParts := make([]string, len(orderParts)*2+2)
+	packageParts[0] = "CHECK"
+	i := 1
+	for _, part := range splitedOrderParts {
+		var dishId int
+		var dishName string
+		var dishPrice float64
+		dbConn.QueryRow(fmt.Sprintf("SELECT id, name, price FROM dishes where id=%s", part[0])).
+			Scan(&dishId, &dishName, &dishPrice)
+
+		count, _ := strconv.ParseInt(part[1], 0, 32)
+		packageParts[i] = dishName
+		packageParts[i+1] = fmt.Sprintf("%d", count)
+		i += 2
+	}
+
+	packageParts[i] = fmt.Sprintf("%f", discount)
+
+	packageString := strings.Join(packageParts, "\n")
+	packageString += "\n"
+	fmt.Print(packageString)
+
+	printConn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposPrintserverIp,
+		goposPrintserverPort))
+	if err != nil {
+		log.Fatal("Unable to connect to printserver server: ", err)
+	}
+
+	for i := 0; i < len(packageString); i++ {
+		_, err = printConn.Write([]byte(packageString[i:i]))
+	}
+
+	_, err = dbConn.Exec(fmt.Sprintf("UPDATE tables SET current_order=-1 WHERE number=%s",
 		requestMap["table_number"]))
 	if err != nil {
 		log.Fatal("Error on setting discount")
@@ -230,16 +278,10 @@ func handleOrderUpdate(requestMap map[string]string, conn net.Conn) {
 	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
 		requestMap["table_number"])).Scan(&orderId)
 
-	_, err := dbConn.Exec(fmt.Sprintf("UPDATE orders SET order_string='%s' WHERE id=%d",
-		requestMap["order_string"], orderId))
-	if err != nil {
-		log.Fatal("Error on updating order")
-	}
-
 	responseMap := make(map[string]string)
 	responseMap["result"] = fmt.Sprintf("OK")
 	encoder := json.NewEncoder(conn)
-	err = encoder.Encode(responseMap)
+	err := encoder.Encode(responseMap)
 	if err != nil {
 		log.Fatal("Error on encode resoponse map: ", err)
 	}
