@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 
 namespace GoposPrintserver {
     class Program {
@@ -19,6 +21,18 @@ namespace GoposPrintserver {
         }
         
         static List<Printer> printers;
+
+        static void handleRequest(Object obj) {
+            Console.WriteLine("here");
+            TcpClient tcpClient = (TcpClient)obj;
+            byte[] bytes = new byte[tcpClient.ReceiveBufferSize];
+            NetworkStream netStream = tcpClient.GetStream ();
+            
+            netStream.Read(bytes, 0, (int)tcpClient.ReceiveBufferSize);
+            string requestStr = Encoding.UTF8.GetString (bytes);
+
+            Console.WriteLine(requestStr);
+        }
 
         static void Main(string[] args) {
             string goposPrintserverPort;
@@ -73,11 +87,8 @@ namespace GoposPrintserver {
             
             tcpListener = new TcpListener(IPAddress.Any, Convert.ToInt32(goposPrintserverPort));
             tcpListener.Start();
-            while (true) {
-                TcpClient tcpClient;
-
-                tcpClient = tcpListener.AcceptTcpClient();
-            }
+            while (true)
+                new Thread(handleRequest).Start(tcpListener.AcceptTcpClient());
         }
     }    
 }

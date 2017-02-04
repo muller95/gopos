@@ -136,7 +136,8 @@ func handleOrderGet(requestMap map[string]string, conn net.Conn) {
 	}
 
 	responseMap = make(map[string]string)
-	responseMap["price"] = fmt.Sprintf("%f", (1.0-discount)*price)
+	responseMap["price"] = fmt.Sprintf("%f", price)
+	responseMap["discount"] = fmt.Sprintf("%f", discount)
 	err = encoder.Encode(responseMap)
 	if err != nil {
 		log.Fatal("Error on encode resoponse map: ", err)
@@ -177,6 +178,7 @@ func handleAddDiscount(requestMap map[string]string, conn net.Conn) {
 	}
 
 	responseMap["result"] = "OK"
+	responseMap["discount"] = fmt.Sprintf("%f", discount)
 	encoder := json.NewEncoder(conn)
 	err = encoder.Encode(responseMap)
 	if err != nil {
@@ -223,9 +225,13 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		splitedOrderParts[i] = strings.Split(part, ":")
 	}
 
-	packageParts := make([]string, len(orderParts)*2+2)
+	packageParts := make([]string, len(orderParts)*2+5)
 	packageParts[0] = "CHECK"
-	i := 1
+	packageParts[1] = requestMap["table_number"]
+	packageParts[2] = fmt.Sprintf("%d", orderId)
+	packageParts[3] = fmt.Sprintf("%f", discount)
+	packageParts[4] = fmt.Sprintf("%f", price)
+	i := 5
 	for _, part := range splitedOrderParts {
 		var dishId int
 		var dishName string
@@ -239,8 +245,6 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		i += 2
 	}
 
-	packageParts[i] = fmt.Sprintf("%f", discount)
-
 	packageString := strings.Join(packageParts, "\n")
 	packageString += "\n"
 	fmt.Print(packageString)
@@ -250,9 +254,11 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 	if err != nil {
 		log.Fatal("Unable to connect to printserver server: ", err)
 	}
-
-	for i := 0; i < len(packageString); i++ {
-		_, err = printConn.Write([]byte(packageString[i:i]))
+	for n := 0; n < len(packageString); {
+		n, err = printConn.Write([]byte(packageString[n:]))
+		if err != nil {
+			log.Fatal("Error on sendig package to printserver")
+		}
 	}
 
 	_, err = dbConn.Exec(fmt.Sprintf("UPDATE tables SET current_order=-1 WHERE number=%s",
@@ -277,11 +283,13 @@ func handleOrderUpdate(requestMap map[string]string, conn net.Conn) {
 
 	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
 		requestMap["table_number"])).Scan(&orderId)
+	_, err := dbConn.Exec(fmt.Sprintf("UPDATE orders SET order_string='%s', price=%s WHERE id=%d",
+		requestMap["order_string"], requestMap["price"], orderId))
 
 	responseMap := make(map[string]string)
 	responseMap["result"] = fmt.Sprintf("OK")
 	encoder := json.NewEncoder(conn)
-	err := encoder.Encode(responseMap)
+	err = encoder.Encode(responseMap)
 	if err != nil {
 		log.Fatal("Error on encode resoponse map: ", err)
 	}

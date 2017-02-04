@@ -19,6 +19,7 @@ var existingOrderPriceLabel *gtk.Label
 var existingOrderListWindow *gtk.Window
 
 var existingOrderPrice float64
+var existingOrderDiscount float64
 
 const (
 	COLUMN_EXISTING_ORDER_LIST_DISH_ID = iota
@@ -142,7 +143,11 @@ func getOrder() {
 	if err != nil {
 		log.Fatal("Error on decoding response: ", err)
 	}
-	existingOrderPriceLabel.SetText("Цена: " + responseMap["price"])
+
+	existingOrderPrice, _ = strconv.ParseFloat(responseMap["price"], 64)
+	existingOrderDiscount, _ = strconv.ParseFloat(responseMap["discount"], 64)
+	existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %f",
+		(1.0-existingOrderDiscount)*existingOrderPrice))
 }
 
 func existingOrderCloseButtonClicked(btn *gtk.Button, passwordEntry *gtk.Entry) {
@@ -232,7 +237,9 @@ func discountAddButtonClicked(btn *gtk.Button, cardNumberEntry *gtk.Entry) {
 		conn.Close()
 		return
 	} else {
-		getOrder()
+		existingOrderDiscount, _ = strconv.ParseFloat(responseMap["discount"], 64)
+		existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %f",
+			(1.0-existingOrderDiscount)*existingOrderPrice))
 	}
 }
 
@@ -271,7 +278,9 @@ func discountDeleteButtonClicked() {
 		conn.Close()
 		return
 	} else {
-		getOrder()
+		existingOrderDiscount = 0.0
+		existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %f",
+			(1.0-existingOrderDiscount)*existingOrderPrice))
 	}
 }
 
@@ -339,8 +348,7 @@ func existingOrderUpdateButtonClicked() {
 		conn.Close()
 		return
 	} else {
-		existingOrderWindow.Destroy()
-		existingOrderListWindow.Destroy()
+		getOrder()
 	}
 }
 

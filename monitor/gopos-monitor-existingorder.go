@@ -234,7 +234,8 @@ func existingOrderDishAddButtonClicked(btn *gtk.Button) {
 	}
 	existingOrderDishPrice := value.GetDouble()
 	existingOrderPrice += existingOrderDishPrice
-	existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f", existingOrderPrice))
+	existingOrderPriceLabel.SetText(fmt.Sprintf("Цена: %.2f",
+		(1.0-existingOrderDiscount)*existingOrderPrice))
 	existingOrderAddRow(existingOrderDishId, existingOrderDishName, existingOrderDishPrice)
 }
 
