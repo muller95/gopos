@@ -13,6 +13,7 @@ import (
 
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
 var goposPrintserverIp, goposPrintserverPort string
+var goposCheckWidth, goposCheckHeight, goposOrderWidth, goposOrderHeight string
 var dbConn *sql.DB
 
 func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
@@ -136,6 +137,26 @@ func main() {
 	goposPrintserverPort = os.Getenv("GOPOS_PRINTSERVER_PORT")
 	if goposServerPort == "" {
 		log.Fatal("GOPOS_SERVER_PORT is not set")
+	}
+
+	goposCheckWidth = os.Getenv("GOPOS_CHECK_WIDTH")
+	if goposCheckWidth == "" {
+		log.Fatal("GOPOS_CHECK_WIDTH is not set")
+	}
+
+	goposCheckHeight = os.Getenv("GOPOS_CHECK_HEIGHT")
+	if goposCheckHeight == "" {
+		log.Fatal("GOPOS_CHECK_HEIGHT is not set")
+	}
+
+	goposOrderWidth = os.Getenv("GOPOS_ORDER_WIDTH")
+	if goposOrderWidth == "" {
+		log.Fatal("GOPOS_ORDER_WIDTH is not set")
+	}
+
+	goposOrderHeight = os.Getenv("GOPOS_ORDER_HEIGHT")
+	if goposOrderHeight == "" {
+		log.Fatal("GOPOS_ORDER_HEIGHT is not set")
 	}
 
 	dbConn, err = sql.Open("mysql", fmt.Sprintf("%s:%s@/gopos?parseTime=true", goposSQLUser,

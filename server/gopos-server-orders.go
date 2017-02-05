@@ -11,6 +11,8 @@ import (
 
 	"strconv"
 
+	"os"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -212,54 +214,85 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 	var orderString string
 	var price, discount float64
 	var orderParts []string
-	var splitedOrderParts [][]string
 
 	dbConn.QueryRow(fmt.Sprintf("SELECT current_order FROM tables WHERE number=%s",
 		requestMap["table_number"])).Scan(&orderId)
 	dbConn.QueryRow(fmt.Sprintf("SELECT order_string, price, discount FROM orders "+
 		"WHERE id=%d", orderId)).Scan(&orderString, &price, &discount)
 
-	orderParts = strings.Split(orderString, " ")
-	splitedOrderParts = make([][]string, len(orderParts))
-	for i, part := range orderParts {
-		splitedOrderParts[i] = strings.Split(part, ":")
+	file, err := os.Create(fmt.Sprintf("%s_%d.html", requestMap["table_number"], orderId))
+	_, err = file.Write([]byte("<html>"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
 	}
 
-	packageParts := make([]string, len(orderParts)*2+5)
-	packageParts[0] = "CHECK"
-	packageParts[1] = requestMap["table_number"]
-	packageParts[2] = fmt.Sprintf("%d", orderId)
-	packageParts[3] = fmt.Sprintf("%f", discount)
-	packageParts[4] = fmt.Sprintf("%f", price)
-	i := 5
-	for _, part := range splitedOrderParts {
+	_, err = file.Write([]byte(fmt.Sprintf("<head><meta charset=\"utf-8\"></head><style> th, td {"+
+		"border: 1px solid black;} table { border: 1px solid black; width:%scm; }</style>",
+		goposCheckWidth)[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	_, err = file.Write([]byte("<body>"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	_, err = file.Write([]byte(fmt.Sprintf("<H3>Заказ: %d. Столик: %s</H3><br/>", orderId,
+		requestMap["table_number"])[:]))
+
+	_, err = file.Write([]byte("<table style=\"border-style:solid\">"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	_, err = file.Write([]byte("<tr><th>Блюдо<th>Цена за единицу<th>Количество<th>Итого</tr>"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	orderParts = strings.Split(orderString, " ")
+	for _, part := range orderParts {
 		var dishId int
 		var dishName string
 		var dishPrice float64
-		dbConn.QueryRow(fmt.Sprintf("SELECT id, name, price FROM dishes where id=%s", part[0])).
-			Scan(&dishId, &dishName, &dishPrice)
 
-		count, _ := strconv.ParseInt(part[1], 0, 32)
-		packageParts[i] = dishName
-		packageParts[i+1] = fmt.Sprintf("%d", count)
-		i += 2
-	}
+		orderPartInfo := strings.Split(part, ":")
 
-	packageString := strings.Join(packageParts, "\n")
-	packageString += "\n"
-	fmt.Print(packageString)
+		dbConn.QueryRow(fmt.Sprintf("SELECT id, name, price FROM dishes where id=%s",
+			orderPartInfo[0])).Scan(&dishId, &dishName, &dishPrice)
 
-	printConn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", goposPrintserverIp,
-		goposPrintserverPort))
-	if err != nil {
-		log.Fatal("Unable to connect to printserver server: ", err)
-	}
-	for n := 0; n < len(packageString); {
-		n, err = printConn.Write([]byte(packageString[n:]))
+		count, _ := strconv.ParseInt(orderPartInfo[1], 0, 32)
+		_, err = file.Write([]byte(fmt.Sprintf("<tr><td>%s</td><td>%.2f</td><td>%d</td>"+
+			"<td>%.2f</td></tr>", dishName, dishPrice, count, dishPrice*float64(count))))
 		if err != nil {
-			log.Fatal("Error on sendig package to printserver")
+			log.Fatal("Error on writing to file: ", err)
 		}
 	}
+
+	_, err = file.Write([]byte("</table>"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	_, err = file.Write([]byte(fmt.Sprintf("<H3>Итого: %.2f <H3>Скидка: %.2f <H3>"+
+		"Итого со скидкой: %.2f", price, discount, (1.0-discount)*price)))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	_, err = file.Write([]byte("</body>"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	_, err = file.Write([]byte("</html>"[:]))
+	if err != nil {
+		log.Fatal("Error on writing to file: ", err)
+	}
+
+	file.Sync()
+	file.Close()
 
 	_, err = dbConn.Exec(fmt.Sprintf("UPDATE tables SET current_order=-1 WHERE number=%s",
 		requestMap["table_number"]))
