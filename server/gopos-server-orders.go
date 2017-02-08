@@ -209,7 +209,7 @@ func handleDeleteDiscount(requestMap map[string]string, conn net.Conn) {
 	}
 }
 
-func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
+func handleOrderClose(requestMap map[string]string, conn net.Conn) {
 	var orderId int64
 	var orderString string
 	var price, discount float64
@@ -226,9 +226,19 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on writing to file: ", err)
 	}
 
-	_, err = file.Write([]byte(fmt.Sprintf("<head><meta charset=\"utf-8\"></head><style> th, td {"+
-		"border: 1px solid black;} table { border: 1px solid black; width:%scm; }</style>",
-		goposCheckWidth)[:]))
+	/*_, err = file.Write([]byte(fmt.Sprintf("<head><meta charset=\"utf-8\"></meta><style> th, td {"+
+	"border: 1px solid black;} table { border: 1px solid black; width:%scm; } "+
+	" @font-face { font-family: \"GoposFont\"; src: url(%s); -fs-pdf-font-embed: embed; "+
+	"-fs-pdf-font-encoding: Identity-H; } * { font-family: GoposFont; }"+
+	"@page { width: %s; } </style></head>",
+	goposCheckWidth[:], goposPrintserviceFont, goposCheckWidth)))*/
+
+	_, err = file.Write([]byte(fmt.Sprintf("<head><meta charset=\"utf-8\"></meta><style> th, td {"+
+		"border: 1px solid black;} table { border: 1px solid black; } "+
+		" @font-face { font-family: \"GoposFont\"; src: url(%s); -fs-pdf-font-embed: embed; "+
+		"-fs-pdf-font-encoding: Identity-H; } * { font-family: GoposFont; }"+
+		"@page { width: %s; } </style></head>",
+		goposPrintserviceFont, goposCheckWidth)))
 	if err != nil {
 		log.Fatal("Error on writing to file: ", err)
 	}
@@ -238,7 +248,7 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on writing to file: ", err)
 	}
 
-	_, err = file.Write([]byte(fmt.Sprintf("<H3>Заказ: %d. Столик: %s</H3><br/>", orderId,
+	_, err = file.Write([]byte(fmt.Sprintf("<H3>Заказ: %d. Столик: %s</H3>", orderId,
 		requestMap["table_number"])[:]))
 
 	_, err = file.Write([]byte("<table style=\"border-style:solid\">"[:]))
@@ -246,7 +256,8 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on writing to file: ", err)
 	}
 
-	_, err = file.Write([]byte("<tr><th>Блюдо<th>Цена за единицу<th>Количество<th>Итого</tr>"[:]))
+	_, err = file.Write([]byte("<tr><th>Блюдо</th><th>Цена за единицу</th><th>Количество</th>" +
+		"<th>Итого</th></tr>"[:]))
 	if err != nil {
 		log.Fatal("Error on writing to file: ", err)
 	}
@@ -275,8 +286,8 @@ func handleCloseOrder(requestMap map[string]string, conn net.Conn) {
 		log.Fatal("Error on writing to file: ", err)
 	}
 
-	_, err = file.Write([]byte(fmt.Sprintf("<H3>Итого: %.2f <H3>Скидка: %.2f <H3>"+
-		"Итого со скидкой: %.2f", price, discount, (1.0-discount)*price)))
+	_, err = file.Write([]byte(fmt.Sprintf("<b>Итого:</b> %.2f <br/> <b>Скидка:</b> %.2f <br/>"+
+		"<b>Итого со скидкой:</b> %.2f", price, discount, (1.0-discount)*price)))
 	if err != nil {
 		log.Fatal("Error on writing to file: ", err)
 	}
