@@ -12,7 +12,7 @@ import (
 )
 
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
-var goposPrintserverIp, goposPrintserverPort string
+var goposPrintserviceFont string
 var goposCheckWidth, goposCheckHeight, goposOrderWidth, goposOrderHeight string
 var dbConn *sql.DB
 
@@ -74,7 +74,7 @@ func handleRequestGroup(requestMap map[string]string, conn net.Conn) {
 		case "DELETE DISCOUNT":
 			handleDeleteDiscount(requestMap, conn)
 		case "CLOSE":
-			handleCloseOrder(requestMap, conn)
+			handleOrderClose(requestMap, conn)
 		case "UPDATE":
 			handleOrderUpdate(requestMap, conn)
 		}
@@ -129,14 +129,9 @@ func main() {
 		log.Fatal("GOPOS_SQL_PASSWORD is not set")
 	}
 
-	goposPrintserverIp = os.Getenv("GOPOS_PRINTSERVER_IP")
-	if goposServerPassword == "" {
-		log.Fatal("GOPOS_SERVER_PASSWORD is not set")
-	}
-
-	goposPrintserverPort = os.Getenv("GOPOS_PRINTSERVER_PORT")
-	if goposServerPort == "" {
-		log.Fatal("GOPOS_SERVER_PORT is not set")
+	goposPrintserviceFont = os.Getenv("GOPOS_PRINTSERVICE_FONT")
+	if goposPrintserviceFont == "" {
+		log.Fatal("GOPOS_PRINTSERVICE_FONT is not set")
 	}
 
 	goposCheckWidth = os.Getenv("GOPOS_CHECK_WIDTH")
