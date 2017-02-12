@@ -12,7 +12,7 @@ import (
 )
 
 var goposServerPassword, goposServerPort, goposSQLUser, goposSQLPassword string
-var goposPrintserviceFont string
+var goposCheckPath, goposOrderPath, goposPrintserviceFont string
 var goposCheckWidth, goposCheckHeight, goposOrderWidth, goposOrderHeight string
 var dbConn *sql.DB
 
@@ -132,6 +132,16 @@ func main() {
 	goposPrintserviceFont = os.Getenv("GOPOS_PRINTSERVICE_FONT")
 	if goposPrintserviceFont == "" {
 		log.Fatal("GOPOS_PRINTSERVICE_FONT is not set")
+	}
+
+	goposCheckPath = os.Getenv("GOPOS_CHECK_PATH")
+	if goposCheckPath == "" {
+		log.Fatal("GOPOS_CHECK_PATH is not set")
+	}
+
+	goposOrderPath = os.Getenv("GOPOS_ORDER_PATH")
+	if goposOrderPath == "" {
+		log.Fatal("GOPOS_ORDER_PATH is not set")
 	}
 
 	goposCheckWidth = os.Getenv("GOPOS_CHECK_WIDTH")

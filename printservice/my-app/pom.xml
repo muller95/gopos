@@ -23,6 +23,7 @@
                 <configuration>
                     <archive>
                         <manifest>
+                            <addClasspath>true</addClasspath>
                             <mainClass>com.mycompany.app.App</mainClass>
                         </manifest>
                     </archive>
