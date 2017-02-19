@@ -126,6 +126,21 @@ public class App {
             return;
         }
 
+        System.out.println("---------LIST ALL PRINTERS--------------------");
+        PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
+        System.out.println("Number of print services: " + printServices.length);
+
+        for (PrintService printer : printServices)
+            System.out.println("Printer: " + printer.getName()); 
+        System.out.println("---------------------------------------");
+
+        System.out.println("printer check names: " + goposPrintserviceCheckPrinterNames);
+        System.out.println("printer order names: " + goposPrintserviceOrderPrinterNames);
+        System.out.println("check path: " + goposCheckPath); 
+        System.out.println("order path: " + goposOrderPath); 
+        System.out.println("tmp check path: " + goposPrintserviceCheckTmpPath); 
+        System.out.println("tmp order path: " + goposPrintserviceOrderTmpPath);
+
         String checkPrinterNames[] = goposPrintserviceCheckPrinterNames.split(":");
         for (int i = 0; i < checkPrinterNames.length; i++)
             printerNames.put(checkPrinterNames[i].trim(), PrinterType.Check);
@@ -157,7 +172,7 @@ public class App {
                 File checkPdfs[] = checkPdfDir.listFiles();   
                 File orderPdfs[] = orderPdfDir.listFiles();
                 
-                
+                System.out.println("number of checks: " + Integer.toString(checks.length));                
                 for (int i = 0; i < checks.length; i++) {
                     BufferedReader reader = new BufferedReader(new FileReader(checks[i]));
                     String data = "", tmp = "";
@@ -168,10 +183,11 @@ public class App {
                         substring(0, checks[i].getName().length() - 4) + "pdf";
                     
                     new Thread(new ToPdfRunnable(data, path)).start();
-                    checks[i].delete();
                     reader.close();
+                    checks[i].delete();
                 }
 
+                System.out.println("number of orders: " + Integer.toString(orders.length));                
                 for (int i = 0; i < orders.length; i++) {
                     BufferedReader reader = new BufferedReader(new FileReader(orders[i]));
                     String data = "", tmp = "";
@@ -182,8 +198,8 @@ public class App {
                         substring(0, orders[i].getName().length() - 4) + "pdf";
                     
                     new Thread(new ToPdfRunnable(data, path)).start();
-                    orders[i].delete();
                     reader.close();
+                    orders[i].delete();
                 }
 
                 for (int i = 0; i < checkPdfs.length; i++) {
