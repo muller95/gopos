@@ -86,7 +86,9 @@ func handleConnection(conn net.Conn) {
 	decoder := json.NewDecoder(conn)
 	err := decoder.Decode(&requestMap)
 	if err != nil {
-		log.Fatal("Error on decoding json: ", err)
+		log.Println("Handle connection: Error on decoding json: ", err)
+		conn.Close()
+		return
 	}
 
 	if requestMap["password"] != goposServerPassword {

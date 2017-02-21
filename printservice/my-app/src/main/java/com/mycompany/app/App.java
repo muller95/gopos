@@ -31,6 +31,14 @@ class Printer {
             PrintService[] printServices =  PrintServiceLookup.lookupPrintServices(null, attrSet);
             DocPrintJob job = printServices[0].createPrintJob();
             DocAttributeSet das = new HashDocAttributeSet();
+            
+            System.out.println("---------------SUPPORTED FLAVOURS------------------");
+            DocFlavor[] flavours = printServices[0].getSupportedDocFlavors();
+            for(int i = 0; i < flavours.length; i++)
+                System.out.println(flavours[i]);
+            System.out.println("---------------------------------------------------");
+                
+
             Doc document = new SimpleDoc(inputStream, DocFlavor.INPUT_STREAM.AUTOSENSE, das);
             PrintRequestAttributeSet pras = new HashPrintRequestAttributeSet();
             job.print(document, pras);
@@ -172,7 +180,7 @@ public class App {
                 File checkPdfs[] = checkPdfDir.listFiles();   
                 File orderPdfs[] = orderPdfDir.listFiles();
                 
-                System.out.println("number of checks: " + Integer.toString(checks.length));                
+                // System.out.println("number of checks: " + Integer.toString(checks.length));                
                 for (int i = 0; i < checks.length; i++) {
                     BufferedReader reader = new BufferedReader(new FileReader(checks[i]));
                     String data = "", tmp = "";
@@ -187,7 +195,7 @@ public class App {
                     checks[i].delete();
                 }
 
-                System.out.println("number of orders: " + Integer.toString(orders.length));                
+                // System.out.println("number of orders: " + Integer.toString(orders.length));                
                 for (int i = 0; i < orders.length; i++) {
                     BufferedReader reader = new BufferedReader(new FileReader(orders[i]));
                     String data = "", tmp = "";
