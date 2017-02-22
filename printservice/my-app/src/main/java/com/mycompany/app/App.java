@@ -189,7 +189,7 @@ public class App {
                     for (int j = 0; j < printers.size(); j++) {
                         PrinterType currType = printers.get(j).getType(); 
                         if (currType == PrinterType.Check || currType == PrinterType.Both)
-                            new Thread(new PrintRunnable(pdfData, printers.get(i))).start();
+                            new Thread(new PrintRunnable(pdfData, printers.get(j))).start();
                     }
                 }
 
@@ -197,9 +197,9 @@ public class App {
                     byte pdfData[] = Files.readAllBytes(Paths.get(orderPdfs[i].getPath()));
                     orderPdfs[i].delete();
                     for (int j = 0; j < printers.size(); j++) {
-                        PrinterType currType = printers.get(i).getType(); 
+                        PrinterType currType = printers.get(j).getType(); 
                         if (currType == PrinterType.Order || currType == PrinterType.Both)
-                            new Thread(new PrintRunnable(pdfData, printers.get(i))).start();
+                            new Thread(new PrintRunnable(pdfData, printers.get(j))).start();
                     }
                 }
             }

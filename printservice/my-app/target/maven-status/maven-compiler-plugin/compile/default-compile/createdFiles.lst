@@ -1,5 +1,5 @@
 com/mycompany/app/Printer.class
 com/mycompany/app/PrintRunnable.class
-com/mycompany/app/App.class
 com/mycompany/app/PrinterType.class
+com/mycompany/app/App.class
 com/mycompany/app/ToPdfRunnable.class
