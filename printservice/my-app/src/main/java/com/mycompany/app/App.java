@@ -5,13 +5,7 @@ package com.mycompany.app;
  *
  */
 
-import org.xhtmlrenderer.pdf.ITextRenderer;
-import org.xhtmlrenderer.simple.*;
-
-import java.awt.print.Pageable;
-import java.awt.print.PrinterJob;
-
-  
+import org.xhtmlrenderer.pdf.ITextRenderer;  
 import java.io.*;
 import java.util.*;
 import java.nio.file.*;
@@ -29,28 +23,14 @@ class Printer {
         this.name = name;
         this.type = type;
     }
-    public synchronized void print(File file) {
+    public synchronized void print(byte data[]) {
         try {
-            XHTMLPanel panel = new XHTMLPanel();
-            panel.setDocument(file);
-            XHTMLPrintable printable = new XHTMLPrintable(panel);
-
-            
-            AttributeSet attrSet = new HashAttributeSet();
-            attrSet.add(new PrinterName(name, null));
-            PrintService[] printServices =  PrintServiceLookup.lookupPrintServices(null, attrSet);
-            System.out.println("---------------SUPPORTED FLAVOURS------------------");
-            DocFlavor[] flavours = printServices[0].getSupportedDocFlavors();
-            for(int i = 0; i < flavours.length; i++)
-                System.out.println(flavours[i]);
-            System.out.println("---------------------------------------------------");   
-            
-            PrinterJob job = PrinterJob.getPrinterJob();
-            job.setPrintService(printServices[0]);
-            job.setPrintable(printable);            
-            job.print();
-
-            file.delete();
+            ProcessBuilder builder = new ProcessBuilder("lpr", "-P", name);
+            Process process = builder.start();
+            OutputStream stdin = process.getOutputStream();
+            OutputStreamWriter writer = new OutputStreamWriter(stdin);
+            stdin.write(data);
+            stdin.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -82,16 +62,16 @@ class ToPdfRunnable implements Runnable {
 }
 
 class PrintRunnable implements Runnable {
-        private File file;
+        private byte data[];
         private Printer printer;
-        public PrintRunnable(File file, Printer printer) {
-            this.file = file;
+        public PrintRunnable(byte data[], Printer printer) {
+            this.data = data;
             this.printer = printer;
         }   
 
         public void run() {        
             try {  
-                printer.print(file);
+                printer.print(data);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -143,21 +123,6 @@ public class App {
             return;
         }
 
-        System.out.println("---------LIST ALL PRINTERS--------------------");
-        PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
-        System.out.println("Number of print services: " + printServices.length);
-
-        for (PrintService printer : printServices)
-            System.out.println("Printer: " + printer.getName()); 
-        System.out.println("---------------------------------------");
-
-        System.out.println("printer check names: " + goposPrintserviceCheckPrinterNames);
-        System.out.println("printer order names: " + goposPrintserviceOrderPrinterNames);
-        System.out.println("check path: " + goposCheckPath); 
-        System.out.println("order path: " + goposOrderPath); 
-        System.out.println("tmp check path: " + goposPrintserviceCheckTmpPath); 
-        System.out.println("tmp order path: " + goposPrintserviceOrderTmpPath);
-
         String checkPrinterNames[] = goposPrintserviceCheckPrinterNames.split(":");
         for (int i = 0; i < checkPrinterNames.length; i++)
             printerNames.put(checkPrinterNames[i].trim(), PrinterType.Check);
@@ -189,8 +154,8 @@ public class App {
                 File checkPdfs[] = checkPdfDir.listFiles();   
                 File orderPdfs[] = orderPdfDir.listFiles();
                 
-                // System.out.println("number of checks: " + Integer.toString(checks.length));                
-                /*for (int i = 0; i < checks.length; i++) {
+                
+                for (int i = 0; i < checks.length; i++) {
                     BufferedReader reader = new BufferedReader(new FileReader(checks[i]));
                     String data = "", tmp = "";
                     while ((tmp = reader.readLine()) != null)
@@ -200,46 +165,43 @@ public class App {
                         substring(0, checks[i].getName().length() - 4) + "pdf";
                     
                     new Thread(new ToPdfRunnable(data, path)).start();
-                    reader.close();
                     checks[i].delete();
-                }*/
-
-                // System.out.println("number of orders: " + Integer.toString(orders.length));                
-                for (int i = 0; i < orders.length; i++) {
-                    String path = goposPrintserviceOrderTmpPath + orders[i].getName();
-                    Files.copy(Paths.get(orders[i].getPath()), Paths.get(path), 
-                        StandardCopyOption.REPLACE_EXISTING);
-                    orders[i].delete();
-
-                    
-                    for (int j = 0; j < printers.size(); j++) {
-                        PrinterType currType = printers.get(j).getType(); 
-                        if (currType == PrinterType.Order || currType == PrinterType.Both)
-                            new Thread(new PrintRunnable(new File(path), printers.get(j))).start();
-                    }
+                    reader.close();
                 }
 
-                /*for (int i = 0; i < checkPdfs.length; i++) {
+                for (int i = 0; i < orders.length; i++) {
+                    BufferedReader reader = new BufferedReader(new FileReader(orders[i]));
+                    String data = "", tmp = "";
+                    while ((tmp = reader.readLine()) != null)
+                        data += "\n" + tmp;
+
+                    String path = goposPrintserviceOrderTmpPath + orders[i].getName().
+                        substring(0, orders[i].getName().length() - 4) + "pdf";
+                    
+                    new Thread(new ToPdfRunnable(data, path)).start();
+                    orders[i].delete();
+                    reader.close();
+                }
+
+                for (int i = 0; i < checkPdfs.length; i++) {
                     byte pdfData[] = Files.readAllBytes(Paths.get(checkPdfs[i].getPath()));
-                    System.out.println("print check:" + checkPdfs[i].getPath());
                     checkPdfs[i].delete();
                     for (int j = 0; j < printers.size(); j++) {
                         PrinterType currType = printers.get(j).getType(); 
                         if (currType == PrinterType.Check || currType == PrinterType.Both)
-                            new Thread(new PrintRunnable(pdfData, printers.get(j))).start();
+                            new Thread(new PrintRunnable(pdfData, printers.get(i))).start();
                     }
                 }
 
                 for (int i = 0; i < orderPdfs.length; i++) {
                     byte pdfData[] = Files.readAllBytes(Paths.get(orderPdfs[i].getPath()));
-                    System.out.println("print order:" + orderPdfs[i].getPath());
                     orderPdfs[i].delete();
                     for (int j = 0; j < printers.size(); j++) {
-                        PrinterType currType = printers.get(j).getType(); 
+                        PrinterType currType = printers.get(i).getType(); 
                         if (currType == PrinterType.Order || currType == PrinterType.Both)
-                            new Thread(new PrintRunnable(pdfData, printers.get(j))).start();
+                            new Thread(new PrintRunnable(pdfData, printers.get(i))).start();
                     }
-                }*/
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
