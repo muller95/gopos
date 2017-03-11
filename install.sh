@@ -24,6 +24,12 @@ then
     apt-get install -y libgtk-3-dev
 fi
 
+JAVA_CHECK=`which java`
+if [ $JAVA_CHECK = "" ]
+then
+    apt-get -y install openjdk-8-jdk
+fi
+
 MVN_CHECK=`which mvn`
 if [ $MVN_CHECK = "" ] 
 then
